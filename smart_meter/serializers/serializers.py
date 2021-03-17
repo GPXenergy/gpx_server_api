@@ -96,8 +96,10 @@ class MeterDetailSerializer(MeterListSerializer):
             'total_power_export_2',
             'gas_timestamp',
             'sn_gas',
+            'actual_gas',
             'total_gas',
             'solar_timestamp',
+            'actual_solar',
             'total_solar',
         )
         read_only_fields = [field for field in fields if field not in ['name', 'visibility_type', 'type']]
