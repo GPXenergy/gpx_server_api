@@ -167,7 +167,7 @@ class MeterTestMixin(UserTestMixin):
             **cls.default_smart_meter_data(),
             **meter_data,
             'user': user or cls.create_user(),
-            'type': 'consument'
+            'type': 'consumer'
         }
         return SmartMeter.objects.create(
             **meter_data
