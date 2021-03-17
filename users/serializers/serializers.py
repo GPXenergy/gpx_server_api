@@ -87,7 +87,6 @@ class UserDetailSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'password': ['Onjuist wachtwoord!']})
             # Set new raw password before saving
             instance.set_password(new_password)
-            print(new_password, instance.password)
 
         new_key = validated_data.pop('new_api_key', None)
         if new_key:
