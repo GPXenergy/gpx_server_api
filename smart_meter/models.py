@@ -15,6 +15,12 @@ class SmartMeter(models.Model):
     """
     objects = SmartMeterManager()
 
+    VISIBILITY_TYPE_OPTIONS = (
+        ('private', 'Privé'),
+        ('group', 'Groep'),
+        ('public', 'Publiek'),
+    )
+
     METER_TYPE_OPTIONS = (
         ('consumer', 'Consument'),
         ('prosumer', 'Prosument'),
@@ -28,8 +34,10 @@ class SmartMeter(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meters')
     # Customizable name for this meter, for identification to the user
     name = models.CharField(max_length=30)
-    # If the meter name and relations are made public when the group meter is made public
-    public = models.BooleanField(default=False)
+    # Meter type, default consumer
+    type = models.CharField(choices=METER_TYPE_OPTIONS, max_length=20, default='consumer')
+    # Visibility for the meter and its measurements
+    visibility_type = models.CharField(choices=VISIBILITY_TYPE_OPTIONS, max_length=10, default='private')
     # GPX-Connector version
     gpx_version = models.CharField(max_length=20, default='undefined')  # 'x.y.z'
     # Timestamp of last change to this model due to measurements
@@ -38,24 +46,24 @@ class SmartMeter(models.Model):
     # Latest power data (required part)
     sn_power = models.CharField(max_length=40)
     power_timestamp = models.DateTimeField()
-    power_import_1 = models.DecimalField(max_digits=9, decimal_places=3)
-    power_import_2 = models.DecimalField(max_digits=9, decimal_places=3)
-    power_export_1 = models.DecimalField(max_digits=9, decimal_places=3)
-    power_export_2 = models.DecimalField(max_digits=9, decimal_places=3)
-    tariff = models.SmallIntegerField()
     actual_power_import = models.DecimalField(max_digits=9, decimal_places=3)
     actual_power_export = models.DecimalField(max_digits=9, decimal_places=3)
+    tariff = models.SmallIntegerField()
+    total_power_import_1 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_power_import_2 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_power_export_1 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_power_export_2 = models.DecimalField(max_digits=9, decimal_places=3)
 
     # Latest gas data
     sn_gas = models.CharField(max_length=40, null=True)
     gas_timestamp = models.DateTimeField(null=True)
-    gas = models.DecimalField(max_digits=9, decimal_places=3, null=True)
+    actual_gas = models.DecimalField(max_digits=9, decimal_places=3, null=True)
+    total_gas = models.DecimalField(max_digits=9, decimal_places=3, null=True)
 
-    # Latest solar data, not P1 data, but keeps track of latest value
+    # Latest solar data
     solar_timestamp = models.DateTimeField(null=True)
-    solar = models.DecimalField(max_digits=9, decimal_places=3, null=True)
-
-    type = models.CharField(choices=METER_TYPE_OPTIONS, max_length=20, default='consumer')
+    actual_solar = models.DecimalField(max_digits=9, decimal_places=3, null=True)
+    total_solar = models.DecimalField(max_digits=9, decimal_places=3, null=True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -100,11 +108,11 @@ class SmartMeter(models.Model):
 
     @property
     def power_import(self):
-        return self.power_import_1 + self.power_import_2
+        return self.total_power_import_1 + self.total_power_import_2
 
     @property
     def power_export(self):
-        return self.power_export_1 + self.power_export_2
+        return self.total_power_export_1 + self.total_power_export_2
 
     @property
     def group_participation(self):
@@ -140,12 +148,18 @@ class Measurement(models.Model):
 
 class PowerMeasurement(Measurement):
     """
-    A single power measurement from 1 meter
+    A single power measurement from 1 smart meter
     """
     objects = PowerMeasurementManager()
 
-    power_imp = models.DecimalField(max_digits=9, decimal_places=3)
-    power_exp = models.DecimalField(max_digits=9, decimal_places=3)
+    # actual in kW
+    actual_import = models.DecimalField(max_digits=9, decimal_places=3)
+    actual_export = models.DecimalField(max_digits=9, decimal_places=3)
+    # total kWh
+    total_import_1 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_import_2 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_export_1 = models.DecimalField(max_digits=9, decimal_places=3)
+    total_export_2 = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class GasMeasurement(Measurement):
@@ -154,9 +168,10 @@ class GasMeasurement(Measurement):
     """
     objects = GasMeasurementManager()
 
-    # Difference in gas m³ since last measurement
-    total = models.DecimalField(max_digits=9, decimal_places=3)
-    gas = models.DecimalField(max_digits=9, decimal_places=3)
+    # actual in m3h
+    actual_gas = models.DecimalField(max_digits=9, decimal_places=3)
+    # total in m3
+    total_gas = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 class SolarMeasurement(Measurement):
@@ -165,7 +180,10 @@ class SolarMeasurement(Measurement):
     """
     objects = SolarMeasurementManager()
 
-    solar = models.DecimalField(max_digits=9, decimal_places=3)
+    # actual in kW
+    actual_solar = models.DecimalField(max_digits=9, decimal_places=3)
+    # total in mWh
+    total_solar = models.DecimalField(max_digits=9, decimal_places=3)
 
 
 def default_public_key():
@@ -280,11 +298,13 @@ class GroupParticipant(models.Model):
     power_import_joined = models.DecimalField(max_digits=9, decimal_places=3)
     power_export_joined = models.DecimalField(max_digits=9, decimal_places=3)
     gas_joined = models.DecimalField(max_digits=9, decimal_places=3, null=True)
+    solar_joined = models.DecimalField(max_digits=9, decimal_places=3, null=True)
 
     # Values at time of leaving, default null
     power_import_left = models.DecimalField(max_digits=9, decimal_places=3, null=True)
     power_export_left = models.DecimalField(max_digits=9, decimal_places=3, null=True)
     gas_left = models.DecimalField(max_digits=9, decimal_places=3, null=True)
+    solar_left = models.DecimalField(max_digits=9, decimal_places=3, null=True)
 
     @property
     def active(self):
@@ -311,8 +331,16 @@ class GroupParticipant(models.Model):
         if not self.gas_joined:
             return 0
         if self.active:
-            return self.meter.gas - self.gas_joined
+            return self.meter.total_gas - self.gas_joined
         return self.gas_left - self.gas_joined
+
+    @property
+    def total_solar(self):
+        if not self.solar_joined:
+            return 0
+        if self.active:
+            return self.meter.total_solar - self.solar_joined
+        return self.solar_left - self.solar_joined
 
     @property
     def actual_power(self):
@@ -322,14 +350,14 @@ class GroupParticipant(models.Model):
 
     @property
     def actual_gas(self):
-        if self.active and self.meter.gas and self.meter.active:
-            return self.meter.gas
+        if self.active and self.meter.active and self.meter.actual_gas:
+            return self.meter.actual_gas
         return 0
 
     @property
     def actual_solar(self):
-        if self.active and self.meter.solar and self.meter.active:
-            return self.meter.solar
+        if self.active and self.meter.active and self.meter.actual_solar:
+            return self.meter.actual_solar
         return 0
 
     @property
@@ -345,11 +373,13 @@ class GroupParticipant(models.Model):
                 self.display_name = self.meter.name
             self.power_import_joined = self.meter.power_import
             self.power_export_joined = self.meter.power_export
-            self.gas_joined = self.meter.gas
+            self.gas_joined = self.meter.total_gas
+            self.solar_joined = self.meter.total_solar
         super().save(**kwargs)
 
     def leave(self):
         self.left_on = timezone.now()
         self.power_import_left = self.meter.power_import
         self.power_export_left = self.meter.power_export
-        self.gas_left = self.meter.gas
+        self.gas_left = self.meter.total_gas
+        self.solar_left = self.meter.total_solar

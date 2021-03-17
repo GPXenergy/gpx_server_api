@@ -139,17 +139,20 @@ class MeterTestMixin(UserTestMixin):
             'gpx_version': '1.2.3',
             'sn_power': '%d' % (meter_serial + 123123),
             'power_timestamp': timezone.now(),
-            'power_import_1': decimal.Decimal(random.randint(0, 10000) / 1000),
-            'power_import_2': decimal.Decimal(random.randint(0, 10000) / 1000),
-            'power_export_1': decimal.Decimal(random.randint(0, 10000) / 1000),
-            'power_export_2': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'actual_power_import': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'actual_power_export': decimal.Decimal(random.randint(0, 1000) / 1000),
             'tariff': 1,
-            'actual_power_import': decimal.Decimal(random.randint(0, 10000) / 1000),
-            'actual_power_export': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_power_import_1': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_power_import_2': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_power_export_1': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_power_export_2': decimal.Decimal(random.randint(0, 10000) / 1000),
             'sn_gas': '%d' % (meter_serial + 124124),
             'gas_timestamp': timezone.now(),
-            'gas': decimal.Decimal(random.randint(0, 10000) / 1000),
-            'solar': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'actual_gas': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'total_gas': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'solar_timestamp': timezone.now(),
+            'actual_solar': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'total_solar': decimal.Decimal(random.randint(0, 10000) / 1000),
         }
 
     @classmethod
@@ -180,8 +183,12 @@ class MeterTestMixin(UserTestMixin):
         """
         measurement_data = {
             'timestamp': timezone.now(),
-            'power_imp': decimal.Decimal(random.randint(0, 1000) / 1000),
-            'power_exp': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'actual_import': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'actual_export': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'total_import_1': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_import_2': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_export_1': decimal.Decimal(random.randint(0, 10000) / 1000),
+            'total_export_2': decimal.Decimal(random.randint(0, 10000) / 1000),
             **measurement_data,
             'meter': meter,
         }
@@ -199,8 +206,8 @@ class MeterTestMixin(UserTestMixin):
         """
         measurement_data = {
             'timestamp': timezone.now(),
-            'gas': decimal.Decimal(random.randint(0, 1000) / 1000),
-            'total': decimal.Decimal(random.randint(900, 1000) / 1000),
+            'actual_gas': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'total_gas': decimal.Decimal(random.randint(0, 10000) / 1000),
             **measurement_data,
             'meter': meter,
         }
@@ -218,7 +225,8 @@ class MeterTestMixin(UserTestMixin):
         """
         measurement_data = {
             'timestamp': timezone.now(),
-            'solar': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'actual_solar': decimal.Decimal(random.randint(0, 1000) / 1000),
+            'total_solar': decimal.Decimal(random.randint(0, 10000) / 1000),
             **measurement_data,
             'meter': meter,
         }

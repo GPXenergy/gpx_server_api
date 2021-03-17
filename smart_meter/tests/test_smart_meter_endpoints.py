@@ -38,7 +38,7 @@ class TestUserMeterListGet(MeterTestMixin, TestCase):
 
         meter_1_data = response.data[0]
         self.assertEqual(self.meter1.name, meter_1_data['name'])
-        self.assertEqual(self.meter1.public, meter_1_data['public'])
+        self.assertEqual(self.meter1.visibility_type, meter_1_data['visibility_type'])
         self.assertEqual(self.meter1.last_update, parse_datetime(meter_1_data['last_update']))
         self.assertIsNone(meter_1_data['group_participation'])
 
@@ -138,7 +138,7 @@ class TestUserMeterDetailGet(MeterTestMixin, TestCase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(self.meter.pk, response.data['pk'])
         self.assertEqual(self.meter.name, response.data['name'])
-        self.assertEqual(self.meter.public, response.data['public'])
+        self.assertEqual(self.meter.visibility_type, response.data['visibility_type'])
         self.assertEqual(self.meter.power_timestamp, parse_datetime(response.data['power_timestamp']))
         self.assertEqual(self.meter.sn_power, response.data['sn_power'])
         self.assertEqual(self.meter.sn_gas, response.data['sn_gas'])
@@ -180,7 +180,7 @@ class TestUserMeterDetailPut(MeterTestMixin, TestCase):
         patch_data = {
             'pk': 'not editable',
             'name': 'new name!!!',
-            'public': True,
+            'visibility_type': 'group',
             'power_timestamp': 'not editable',
             'sn_power': 'not editable',
             'sn_gas': 'not editable',
@@ -191,7 +191,7 @@ class TestUserMeterDetailPut(MeterTestMixin, TestCase):
         # then
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(patch_data['name'], response.data['name'])
-        self.assertEqual(patch_data['public'], response.data['public'])
+        self.assertEqual(patch_data['visibility_type'], response.data['visibility_type'])
         # These values should stay unchanged
         self.assertEqual(self.meter.pk, response.data['pk'])
         self.assertEqual(self.meter.power_timestamp, parse_datetime(response.data['power_timestamp']))

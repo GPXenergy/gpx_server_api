@@ -1,4 +1,4 @@
-from django.db.models import QuerySet, Min, Avg, Sum
+from django.db.models import QuerySet, Min, Avg, Sum, Max
 from django.db.models.functions import TruncHour, TruncMinute, TruncDay
 from django.utils import timezone
 from django_filters import rest_framework as filters
@@ -45,31 +45,33 @@ class PowerMeasurementFilter(MeasurementFilter):
     def filter_timestamp_aggregation(self, qs):
         qs = qs.annotate(
             id=Min('id'),
-            power_imp=Avg('power_imp'),  # power as average over given time period
-            power_exp=Avg('power_exp'),  # power as average over given time period
+            actual_import=Avg('actual_import'),  # power as average over given time period
+            actual_export=Avg('actual_export'),  # power as average over given time period
             timestamp=Min('timestamp')
         )
-        return qs.values('id', 'timestamp', 'power_imp', 'power_exp')
+        return qs.values('id', 'timestamp', 'actual_import', 'actual_export')
 
 
 class GasMeasurementFilter(MeasurementFilter):
     def filter_timestamp_aggregation(self, qs):
         qs = qs.annotate(
             id=Min('id'),
-            gas=Sum('gas'),  # gas in m³ is better as total in given time period
+            actual_gas=Avg('actual_gas'),
+            total_gas=Max('total_gas') - Min('total_gas'),
             timestamp=Min('timestamp')
         )
-        return qs.values('id', 'timestamp', 'gas')
+        return qs.values('id', 'timestamp', 'actual_gas', 'total_gas',)
 
 
 class SolarMeasurementFilter(MeasurementFilter):
     def filter_timestamp_aggregation(self, qs):
         qs = qs.annotate(
             id=Min('id'),
-            solar=Avg('solar'),  # solar power as average over given time period
+            actual_solar=Avg('actual_solar'),
+            total_solar=Max('total_solar') - Min('total_solar'),
             timestamp=Min('timestamp')
         )
-        return qs.values('id', 'timestamp', 'solar')
+        return qs.values('id', 'timestamp', 'actual_solar', 'total_solar',)
 
 
 class GroupParticipantFilter(filters.FilterSet):

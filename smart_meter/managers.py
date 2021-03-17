@@ -29,18 +29,20 @@ class SmartMeterManager(models.Manager):
                 gpx_version=gpx_version or 'undefined',
                 sn_power=power.get('sn'),
                 power_timestamp=power.get('timestamp'),
-                power_import_1=power.get('import_1'),
-                power_import_2=power.get('import_2'),
-                power_export_1=power.get('export_1'),
-                power_export_2=power.get('export_2'),
-                tariff=power.get('tariff'),
                 actual_power_import=power.get('actual_import'),
                 actual_power_export=power.get('actual_export'),
+                tariff=power.get('tariff'),
+                total_power_import_1=power.get('import_1'),
+                total_power_import_2=power.get('import_2'),
+                total_power_export_1=power.get('export_1'),
+                total_power_export_2=power.get('export_2'),
                 sn_gas=gas.get('sn'),
                 gas_timestamp=gas.get('timestamp'),
-                gas=gas.get('gas'),
+                total_gas=gas.get('gas'),
+                # actual_gas=gas.get('gas'),  -- Actual gas is set after measurement
                 solar_timestamp=solar.get('timestamp'),
-                solar=solar.get('solar'),
+                actual_solar=solar.get('solar'),
+                total_solar=solar.get('total'),
                 last_update=timezone.now(),
             ),
             user=user,
@@ -49,15 +51,19 @@ class SmartMeterManager(models.Manager):
 
         new_power_measurement = None
 
-        last_power = meter.last_power_measurement
         if power and power.get('timestamp'):
+            last_power = meter.last_power_measurement
             new_power_measurement = meter.powermeasurement_set.add_new_power_measurement(created, last_power, **power)
-        last_gas = meter.last_gas_measurement
-        if gas and new_power_measurement and gas.get('timestamp'):
-            meter.gasmeasurement_set.add_new_gas_measurement(created, last_gas, **gas)
-        last_solar = meter.last_solar_measurement
         if solar and new_power_measurement and solar.get('timestamp'):
+            last_solar = meter.last_solar_measurement
             meter.solarmeasurement_set.add_new_solar_measurement(created, last_solar, **solar)
+        if gas and gas.get('timestamp'):
+            last_gas = meter.last_gas_measurement
+            new_gas = meter.gasmeasurement_set.add_new_gas_measurement(created, last_gas, **gas)
+            if new_gas:
+                # Save the actual gas to the meter object
+                meter.actual_gas = new_gas.actual_gas
+                meter.save(update_fields=['actual_gas'])
 
         return meter
 
@@ -82,8 +88,12 @@ class PowerMeasurementManager(models.Manager):
                 last_measurement.timestamp + self.minimum_store_duration < timestamp:
             return self.create(
                 timestamp=timestamp,
-                power_imp=kwargs.get('actual_import'),
-                power_exp=kwargs.get('actual_export'),
+                actual_import=kwargs.get('actual_import'),
+                actual_export=kwargs.get('actual_export'),
+                total_import_1=kwargs.get('import_1'),
+                total_import_2=kwargs.get('import_2'),
+                total_export_1=kwargs.get('export_1'),
+                total_export_2=kwargs.get('export_2'),
             )
 
 
@@ -102,18 +112,20 @@ class GasMeasurementManager(models.Manager):
         :param timestamp: timestamp of new measurement
         :param gas: gas value of new measurement
         :param kwargs: other gas measurement data
-        :return:
+        :rtype: smart_meter.models.GasMeasurement
         """
         if meter_created or not last_measurement or \
                 last_measurement.timestamp + self.minimum_store_duration < timestamp:
-            gas_val = 0  # initial gas usage is 0
-            if last_measurement and gas > last_measurement.gas:
-                # Gas value in measurement is difference between last measurement and this measurement
-                gas_val = gas - last_measurement.total
+            actual_gas = 0  # actual default 0
+            if last_measurement and gas > last_measurement.total_gas:
+                gas_difference = float(gas - last_measurement.total_gas)
+                time_difference = timestamp - last_measurement.timestamp
+                # actual gas in m3/h
+                actual_gas = gas_difference * (timezone.timedelta(hours=1) / time_difference)
             return self.create(
                 timestamp=timestamp,
-                gas=gas_val,
-                total=gas,
+                actual_gas=actual_gas,
+                total_gas=gas,
             )
 
 
@@ -137,7 +149,8 @@ class SolarMeasurementManager(models.Manager):
                 last_measurement.timestamp + self.minimum_store_duration < timestamp:
             return self.create(
                 timestamp=timestamp,
-                solar=kwargs.get('solar')
+                actual_solar=kwargs.get('solar'),
+                total_solar=kwargs.get('total', 0),
             )
 
 

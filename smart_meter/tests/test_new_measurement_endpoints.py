@@ -38,26 +38,31 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         super().setUpTestData()
         cls.user = cls.create_user()
         cls.meter1 = cls.create_smart_meter(cls.user, name='Home')
-        cls.meter1.powermeasurement_set.create(
-            timestamp=timezone.now() - timezone.timedelta(minutes=6),
-            power_imp=1.33,
-            power_exp=1.33,
+        cls.last_powermeasurement = cls.meter1.powermeasurement_set.create(
+            timestamp=timezone.now(),
+            actual_import=1.33,
+            actual_export=0,
+            total_import_1=123,
+            total_import_2=124,
+            total_export_1=12,
+            total_export_2=31,
         )
-        cls.meter1.gasmeasurement_set.create(
-            timestamp=timezone.now() - timezone.timedelta(minutes=6),
-            gas=1.33,
-            total=444.33,
+        cls.last_gasmeasurement = cls.meter1.gasmeasurement_set.create(
+            timestamp=timezone.now(),
+            actual_gas=0.2,
+            total_gas=122.321,
         )
-        cls.meter1.solarmeasurement_set.create(
-            timestamp=timezone.now() - timezone.timedelta(minutes=6),
-            solar=4.1,
+        cls.last_solarmeasurement = cls.meter1.solarmeasurement_set.create(
+            timestamp=timezone.now(),
+            actual_solar=1.1,
+            total_solar=32.1,
         )
 
     def setUp(self):
         self.default_payload = {
             'power': {
                 'sn': self.meter1.sn_power,
-                'timestamp': timezone.now(),
+                'timestamp': self.last_powermeasurement.timestamp + timezone.timedelta(minutes=6),
                 'import_1': Decimal('123.321'),
                 'import_2': Decimal('124.421'),
                 'export_1': Decimal('12.31'),
@@ -68,11 +73,11 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
             },
             'gas': {
                 'sn': self.meter1.sn_gas,
-                'timestamp': timezone.now(),
+                'timestamp': self.last_gasmeasurement.timestamp + timezone.timedelta(minutes=6),
                 'gas': Decimal('123.321'),
             },
             'solar': {
-                'timestamp': timezone.now(),
+                'timestamp': self.last_solarmeasurement.timestamp + timezone.timedelta(minutes=6),
                 'solar': Decimal('0.5'),
             },
         }
@@ -90,22 +95,35 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.meter1.refresh_from_db()
         self.assertEqual(payload['power']['sn'], self.meter1.sn_power)
         self.assertEqual(payload['power']['timestamp'], self.meter1.power_timestamp)
-        self.assertEqual(payload['power']['import_1'], self.meter1.power_import_1)
-        self.assertEqual(payload['power']['import_2'], self.meter1.power_import_2)
-        self.assertEqual(payload['power']['export_1'], self.meter1.power_export_1)
-        self.assertEqual(payload['power']['export_2'], self.meter1.power_export_2)
         self.assertEqual(payload['power']['actual_import'], self.meter1.actual_power_import)
         self.assertEqual(payload['power']['actual_export'], self.meter1.actual_power_export)
         self.assertEqual(payload['power']['tariff'], self.meter1.tariff)
+        self.assertEqual(payload['power']['import_1'], self.meter1.total_power_import_1)
+        self.assertEqual(payload['power']['import_2'], self.meter1.total_power_import_2)
+        self.assertEqual(payload['power']['export_1'], self.meter1.total_power_export_1)
+        self.assertEqual(payload['power']['export_2'], self.meter1.total_power_export_2)
         self.assertEqual(payload['gas']['sn'], self.meter1.sn_gas)
         self.assertEqual(payload['gas']['timestamp'], self.meter1.gas_timestamp)
-        self.assertEqual(payload['gas']['gas'], self.meter1.gas)
+        self.assertEqual(payload['gas']['gas'], self.meter1.total_gas)
         self.assertEqual(payload['solar']['timestamp'], self.meter1.solar_timestamp)
-        self.assertEqual(payload['solar']['solar'], self.meter1.solar)
+        self.assertEqual(payload['solar']['solar'], self.meter1.actual_solar)
         # Meter should now have 2 measurements of each
         self.assertEqual(2, self.meter1.powermeasurement_set.count())
+        last_power = self.meter1.powermeasurement_set.last()
+        self.assertEqual(payload['power']['actual_import'], last_power.actual_import)
+        self.assertEqual(payload['power']['actual_export'], last_power.actual_export)
+        self.assertEqual(payload['power']['import_1'], last_power.total_import_1)
+        self.assertEqual(payload['power']['import_2'], last_power.total_import_2)
+        self.assertEqual(payload['power']['export_1'], last_power.total_export_1)
+        self.assertEqual(payload['power']['export_2'], last_power.total_export_2)
         self.assertEqual(2, self.meter1.gasmeasurement_set.count())
+        last_gas = self.meter1.gasmeasurement_set.last()
+        self.assertEqual(payload['gas']['gas'], last_gas.total_gas)
+        self.assertEqual(10, last_gas.actual_gas)
         self.assertEqual(2, self.meter1.solarmeasurement_set.count())
+        last_solar = self.meter1.solarmeasurement_set.last()
+        self.assertEqual(payload['solar']['solar'], last_solar.actual_solar)
+        self.assertEqual(0, last_solar.total_solar)
 
     @tag('variation')
     def test_new_measurement_view_post_4_minute_measurement_as_user_success(self):
@@ -141,18 +159,18 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         new_meter = SmartMeter.objects.get(sn_power=payload['power']['sn'])
         self.assertEqual(payload['power']['sn'], new_meter.sn_power)
         self.assertEqual(payload['power']['timestamp'], new_meter.power_timestamp)
-        self.assertEqual(payload['power']['import_1'], new_meter.power_import_1)
-        self.assertEqual(payload['power']['import_2'], new_meter.power_import_2)
-        self.assertEqual(payload['power']['export_1'], new_meter.power_export_1)
-        self.assertEqual(payload['power']['export_2'], new_meter.power_export_2)
-        self.assertEqual(payload['power']['actual_import'], new_meter.actual_power_import)
-        self.assertEqual(payload['power']['actual_export'], new_meter.actual_power_export)
-        self.assertEqual(payload['power']['tariff'], new_meter.tariff)
+        self.assertEqual(payload['power']['actual_import'], self.meter1.actual_power_import)
+        self.assertEqual(payload['power']['actual_export'], self.meter1.actual_power_export)
+        self.assertEqual(payload['power']['tariff'], self.meter1.tariff)
+        self.assertEqual(payload['power']['import_1'], self.meter1.total_power_import_1)
+        self.assertEqual(payload['power']['import_2'], self.meter1.total_power_import_2)
+        self.assertEqual(payload['power']['export_1'], self.meter1.total_power_export_1)
+        self.assertEqual(payload['power']['export_2'], self.meter1.total_power_export_2)
         self.assertEqual(payload['gas']['sn'], new_meter.sn_gas)
         self.assertEqual(payload['gas']['timestamp'], new_meter.gas_timestamp)
-        self.assertEqual(payload['gas']['gas'], new_meter.gas)
+        self.assertEqual(payload['gas']['gas'], new_meter.total_gas)
         self.assertEqual(payload['solar']['timestamp'], new_meter.solar_timestamp)
-        self.assertEqual(payload['solar']['solar'], new_meter.solar)
+        self.assertEqual(payload['solar']['solar'], new_meter.actual_solar)
 
     @tag('variation')
     def test_new_measurement_view_post_no_gas_solar_as_user_success(self):
@@ -169,9 +187,9 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.assertEqual(payload['power']['timestamp'], new_meter.power_timestamp)
         self.assertIsNone(new_meter.sn_gas)
         self.assertIsNone(new_meter.gas_timestamp)
-        self.assertIsNone(new_meter.gas)
+        self.assertIsNone(new_meter.total_gas)
         self.assertIsNone(new_meter.solar_timestamp)
-        self.assertIsNone(new_meter.solar)
+        self.assertIsNone(new_meter.actual_solar)
         self.assertEqual(2, self.meter1.powermeasurement_set.count())
         self.assertEqual(1, self.meter1.gasmeasurement_set.count())
         self.assertEqual(1, self.meter1.solarmeasurement_set.count())

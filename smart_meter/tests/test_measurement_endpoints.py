@@ -43,7 +43,8 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
         self.assertEqual(50, len(response.data))
         for i in range(50):
             # Averages equal the actual value
-            self.assertEqual(str(self.measurements[i].power_imp), response.data[i].get('power_imp'))
+            self.assertEqual(str(self.measurements[i].actual_import), response.data[i].get('actual_import'))
+            self.assertEqual(str(self.measurements[i].actual_export), response.data[i].get('actual_export'))
 
     @tag('filter')
     def test_power_measurement_list_get_filter_days_as_user_success(self):
@@ -62,13 +63,13 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
             # Averages equal averages of the hour
             timestamp = dateparse.parse_datetime(response.data[i].get('timestamp')).astimezone(timezone.utc)
             this_hour_measurements = [
-                measurement.power_exp
+                measurement.actual_export
                 for measurement in self.measurements
                 if measurement.timestamp.day == timestamp.day and measurement.timestamp.hour == timestamp.hour
             ]
             avg_import = sum(this_hour_measurements) / len(this_hour_measurements)
 
-            self.assertAlmostEqual(avg_import, Decimal(response.data[i].get('power_exp')), 3)
+            self.assertAlmostEqual(avg_import, Decimal(response.data[i].get('actual_export')), 3)
 
     @tag('filter')
     def test_power_measurement_list_get_filter_timestamp_as_user_success(self):

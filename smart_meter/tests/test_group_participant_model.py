@@ -28,21 +28,21 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
         self.assertEqual(self.meter.name, participant.display_name)
         self.assertEqual(self.meter.power_import, participant.power_import_joined)
         self.assertEqual(self.meter.power_export, participant.power_export_joined)
-        self.assertEqual(self.meter.gas, participant.gas_joined)
+        self.assertEqual(self.meter.total_gas, participant.gas_joined)
 
     @tag('model')
     def test_group_participant_total_properties_active_success(self):
         # given
         participant = self.create_group_participation(self.meter, self.some_group)
-        # when
-        self.meter.power_import_1 += 1
-        self.meter.power_import_2 += 1
-        self.meter.power_export_1 += 1
-        self.meter.power_export_2 += 1
-        self.meter.gas += 1
+        self.meter.total_power_import_1 += 1
+        self.meter.total_power_import_2 += 1
+        self.meter.total_power_export_1 += 1
+        self.meter.total_power_export_2 += 1
+        self.meter.total_gas += 1
         self.meter.save()
-        # then
+        # when
         participant.refresh_from_db()
+        # then
         self.assertEqual(2, participant.total_import)
         self.assertEqual(2, participant.total_export)
         self.assertEqual(1, participant.total_gas)
@@ -51,13 +51,16 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
     def test_group_participant_total_properties_inactive_success(self):
         # given
         participant = self.create_group_participation(self.meter, self.some_group)
-        # when
-        self.meter.power_import_1 += 1
-        self.meter.power_import_2 += 1
-        self.meter.power_export_1 += 1
-        self.meter.power_export_2 += 1
-        self.meter.gas += 1
+        self.meter.total_power_import_1 += 1
+        self.meter.total_power_import_2 += 1
+        self.meter.total_power_export_1 += 1
+        self.meter.total_power_export_2 += 1
+        self.meter.total_gas += 1
         self.meter.save()
+        # when
+        participant.refresh_from_db()
+        participant.leave()
+        participant.save()
         # then
         participant.refresh_from_db()
         self.assertEqual(2, participant.total_import)
@@ -70,12 +73,12 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
         participant = self.create_group_participation(self.meter, self.some_group)
         self.meter.actual_power_import = 2
         self.meter.actual_power_export = 0
-        self.meter.gas = 3
-        self.meter.solar = 4
+        self.meter.actual_gas = 3
+        self.meter.actual_solar = 4
         self.meter.save()
         # when
-        # then
         participant.refresh_from_db()
+        # then
         # actual power = export - import
         self.assertEqual(-2, participant.actual_power)
         self.assertEqual(3, participant.actual_gas)
@@ -87,10 +90,11 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
         participant = self.create_group_participation(self.meter, self.some_group)
         self.meter.actual_power_import = 2
         self.meter.actual_power_export = 0
-        self.meter.gas = 3
-        self.meter.solar = 4
+        self.meter.actual_gas = 3
+        self.meter.actual_solar = 4
         self.meter.save()
         # when
+        participant.refresh_from_db()
         participant.leave()
         participant.save()
         # then

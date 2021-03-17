@@ -24,7 +24,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.environ.get('GPX_DJANGO_SECRET', 'oqij)hzfz(y&*9yh53c*&o_$@p!evxhs@k0z55xtq8rnevy@^5')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get('GPX_DEBUG', True))
+DEBUG = os.environ.get('GPX_DEBUG', True) in [True, 1, '1', 'True']
 
 ALLOWED_HOSTS = [
     'localhost',

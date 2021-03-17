@@ -17,8 +17,12 @@ class PowerMeasurementSerializer(serializers.ModelSerializer):
         model = PowerMeasurement
         fields = (
             'timestamp',
-            'power_imp',
-            'power_exp',
+            'actual_import',
+            'actual_export',
+            'total_import_1',
+            'total_import_2',
+            'total_export_1',
+            'total_export_2',
         )
         read_only_fields = fields
 
@@ -32,7 +36,8 @@ class GasMeasurementSerializer(serializers.ModelSerializer):
         model = GasMeasurement
         fields = (
             'timestamp',
-            'gas',
+            'actual_gas',
+            'total_gas',
         )
         read_only_fields = fields
 
@@ -46,7 +51,8 @@ class SolarMeasurementSerializer(serializers.ModelSerializer):
         model = SolarMeasurement
         fields = (
             'timestamp',
-            'solar',
+            'actual_solar',
+            'total_solar',
         )
         read_only_fields = fields
 
@@ -61,15 +67,11 @@ class MeterListSerializer(serializers.ModelSerializer):
         fields = (
             'pk',
             'name',
-            'public',
             'type',
+            'visibility_type',
             'last_update',
             'power_timestamp',
             'group_participation',
-            'power_import_1',
-            'power_import_2',
-            'power_export_1',
-            'power_export_2',
         )
         read_only_fields = fields
 
@@ -88,13 +90,17 @@ class MeterDetailSerializer(MeterListSerializer):
             'tariff',
             'actual_power_import',
             'actual_power_export',
+            'total_power_import_1',
+            'total_power_import_2',
+            'total_power_export_1',
+            'total_power_export_2',
             'gas_timestamp',
             'sn_gas',
-            'gas',
+            'total_gas',
             'solar_timestamp',
-            'solar',
+            'total_solar',
         )
-        read_only_fields = [field for field in fields if field not in ['name', 'public', 'type']]
+        read_only_fields = [field for field in fields if field not in ['name', 'visibility_type', 'type']]
 
 
 class GroupMeterListSerializer(serializers.ModelSerializer):
