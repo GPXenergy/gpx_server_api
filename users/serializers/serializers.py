@@ -47,6 +47,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'first_name',
             'last_name',
             'password',
+            'new_password',
+            'confirm_password',
             'default_meter',
             'api_key',
             'new_api_key',
@@ -59,6 +61,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     default_meter = serializers.PrimaryKeyRelatedField(queryset=[])
     new_api_key = serializers.BooleanField(default=False)
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
 
     def get_fields(self):
         fields = super().get_fields()
@@ -66,11 +70,24 @@ class UserDetailSerializer(serializers.ModelSerializer):
         fields['default_meter'].queryset = SmartMeter.objects.filter(user_id=self.context['view'].kwargs.get('pk'))
         return fields
 
+    def validate_new_password(self, value):
+        password_validation.validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        if attrs.get('new_password') and attrs.get('confirm_password') != attrs.get('new_password'):
+            raise serializers.ValidationError({'confirm_password': ['Wachtwoord komt niet overeen!']})
+        return super().validate(attrs)
+
     def update(self, instance: User, validated_data):
-        password = validated_data.pop('password', None)
-        if password:
+        new_password = validated_data.pop('new_password', None)
+        if new_password:
+            old_password = validated_data.pop('password', None)
+            if not instance.check_password(old_password):
+                raise serializers.ValidationError({'password': ['Onjuist wachtwoord!']})
             # Set new raw password before saving
-            instance.set_password(password)
+            instance.set_password(new_password)
+            print(new_password, instance.password)
 
         new_key = validated_data.pop('new_api_key', None)
         if new_key:

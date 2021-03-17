@@ -116,7 +116,7 @@ class GasMeasurementManager(models.Manager):
         """
         if meter_created or not last_measurement or \
                 last_measurement.timestamp + self.minimum_store_duration < timestamp:
-            actual_gas = 0  # actual default 0
+            actual_gas = 0  # actual default 0, also if new measurement is lower it will be 0
             if last_measurement and gas > last_measurement.total_gas:
                 gas_difference = float(gas - last_measurement.total_gas)
                 time_difference = timestamp - last_measurement.timestamp

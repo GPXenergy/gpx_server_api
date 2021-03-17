@@ -15,10 +15,10 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
         cls.user = cls.create_user()
         cls.meter = cls.create_smart_meter(cls.user, name='Home')
         # create 60 measurements for past hour
-        cls.start = timezone.now() - timezone.timedelta(minutes=50 * 5)
+        cls.start = timezone.now() - timezone.timedelta(minutes=60 * 5)
         cls.measurements = [
             cls.create_power_measurement(cls.meter, timestamp=cls.start + timezone.timedelta(minutes=i * 5))
-            for i in range(50)
+            for i in range(60)
         ]
         for m in cls.measurements:
             m.refresh_from_db()
@@ -40,8 +40,8 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
         response = self.client.get(self.MeterUrls.power_measurement_url(self.user.pk, self.meter.pk), filter_data)
         # then
         self.assertEqual(status.HTTP_200_OK, response.status_code)
-        self.assertEqual(50, len(response.data))
-        for i in range(50):
+        self.assertEqual(60, len(response.data))
+        for i in range(60):
             # Averages equal the actual value
             self.assertEqual(str(self.measurements[i].actual_import), response.data[i].get('actual_import'))
             self.assertEqual(str(self.measurements[i].actual_export), response.data[i].get('actual_export'))
@@ -58,8 +58,8 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
         response = self.client.get(self.MeterUrls.power_measurement_url(self.user.pk, self.meter.pk), filter_data)
         # then
         self.assertEqual(status.HTTP_200_OK, response.status_code)
-        self.assertEqual(5, len(response.data))
-        for i in range(5):
+        self.assertEqual(6, len(response.data))
+        for i in range(6):
             # Averages equal averages of the hour
             timestamp = dateparse.parse_datetime(response.data[i].get('timestamp')).astimezone(timezone.utc)
             this_hour_measurements = [

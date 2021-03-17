@@ -178,7 +178,6 @@ class TestUserDetailPatch(MeterTestMixin, TestCase):
         self.client.force_authenticate(self.user)
         update_payload = {
             'username': 'This should not be changed',
-            'password': 'mynewpass123',
             'first_name': 'John',
             'last_name': 'Johansonn',
             'email': 'john@oanax.com',
@@ -194,9 +193,6 @@ class TestUserDetailPatch(MeterTestMixin, TestCase):
         # username should not be changed
         self.assertNotEqual(update_payload['username'], response.data.get('username'))
         self.assertEqual(self.user.username, response.data.get('username'))
-        # refresh user object to check the new hashed password
-        self.user.refresh_from_db()
-        self.assertTrue(self.user.check_password(update_payload['password']))
 
     @tag('validation')
     def test_user_detail_patch_default_meter_as_user_success(self):
@@ -244,6 +240,52 @@ class TestUserDetailPatch(MeterTestMixin, TestCase):
         self.assertNotEqual(self.user.api_key, response.data.get('api_key'))
         self.user.refresh_from_db()
         self.assertEqual(self.user.api_key, response.data.get('api_key'))
+
+    @tag('validation')
+    def test_user_detail_patch_new_password_as_user_success(self):
+        # given
+        self.client.force_authenticate(self.user)
+        update_payload = {
+            'password': 'something123',  # current password
+            'new_password': 'peaNUTS!!!',
+            'confirm_password': 'peaNUTS!!!',
+        }
+        # when
+        response = self.client.patch(self.UserUrls.user_url(self.user.pk), update_payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('peaNUTS!!!'))
+
+    @tag('validation')
+    def test_user_detail_patch_new_password_as_user_fail_incorrect_old_password(self):
+        # given
+        self.client.force_authenticate(self.user)
+        update_payload = {
+            'password': 'something124',
+            'new_password': 'peaNUTS!!!',
+            'confirm_password': 'peaNUTS!!!',
+        }
+        # when
+        response = self.client.patch(self.UserUrls.user_url(self.user.pk), update_payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data.get('password'))
+
+    @tag('validation')
+    def test_user_detail_patch_new_password_as_user_fail_new_passwords_no_match(self):
+        # given
+        self.client.force_authenticate(self.user)
+        update_payload = {
+            'password': 'something123',
+            'new_password': 'peaNUTS!!!',
+            'confirm_password': 'teaNUTS!!!',
+        }
+        # when
+        response = self.client.patch(self.UserUrls.user_url(self.user.pk), update_payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data.get('confirm_password'))
 
     @tag('permission')
     def test_user_detail_patch_as_other_user_fail_forbidden(self):
