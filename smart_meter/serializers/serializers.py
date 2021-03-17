@@ -72,6 +72,12 @@ class MeterListSerializer(serializers.ModelSerializer):
             'last_update',
             'power_timestamp',
             'group_participation',
+            'total_power_import_1',
+            'total_power_import_2',
+            'total_power_export_1',
+            'total_power_export_2',
+            'total_gas',
+            'total_solar',
         )
         read_only_fields = fields
 
