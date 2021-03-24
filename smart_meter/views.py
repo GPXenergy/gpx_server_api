@@ -58,9 +58,9 @@ class UserMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
     `PUT`:
     `DELETE`:
     """
-    # GET_permissions = [RequestUserIsRelatedToUser]
-    # PUT_permissions = GET_permissions
-    # DELETE_permissions = GET_permissions
+    GET_permissions = [RequestUserIsRelatedToUser]
+    PUT_permissions = GET_permissions
+    DELETE_permissions = GET_permissions
     filter_backends = [DjangoFilterBackend]
     filter_class = MeterMeasurementFilter
 
