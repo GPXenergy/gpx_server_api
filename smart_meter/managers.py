@@ -1,5 +1,5 @@
 from django.db import models, transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, functions
 from django.utils import timezone
 
 
@@ -68,6 +68,69 @@ class SmartMeterManager(models.Manager):
         return meter
 
 
+class MeasurementQuerySet(models.QuerySet):
+    def filter_timestamp(self, after, before):
+        qs = self.filter(timestamp__range=(after, before))
+        delta: timezone.timedelta = before - after
+        if delta.days < 2:
+            qs = qs.annotate(
+                timestamp_trunc=functions.TruncMinute('timestamp')
+            ).values('timestamp_trunc')
+        elif delta.days < 14:
+            qs = qs.annotate(
+                timestamp_trunc=functions.TruncHour('timestamp')
+            ).values('timestamp_trunc')
+        else:
+            qs = qs.annotate(
+                timestamp_trunc=functions.TruncDay('timestamp')
+            ).values('timestamp_trunc')
+
+        return self.filter_timestamp_aggregation(qs)
+
+    def filter_timestamp_aggregation(self, qs):
+        raise NotImplementedError
+
+
+class PowerMeasurementQuerySet(MeasurementQuerySet):
+    def filter_timestamp_aggregation(self, qs):
+        qs = qs.annotate(
+            id=models.Min('id'),
+            actual_import=models.Avg('actual_import'),  # power as average over given time period
+            actual_export=models.Avg('actual_export'),  # power as average over given time period
+            timestamp=models.Min('timestamp'),
+            total_import_1=models.Max('total_import_1') - models.Min('total_import_1'),
+            total_import_2=models.Max('total_import_2') - models.Min('total_import_2'),
+            total_export_1=models.Max('total_export_1') - models.Min('total_export_1'),
+            total_export_2=models.Max('total_export_2') - models.Min('total_export_2'),
+        )
+        return qs.values(
+            'id', 'timestamp', 'actual_import', 'actual_export',
+            'total_import_1', 'total_import_2', 'total_export_1', 'total_export_2',
+        )
+
+
+class SolarMeasurementQuerySet(MeasurementQuerySet):
+    def filter_timestamp_aggregation(self, qs):
+        qs = qs.annotate(
+            id=models.Min('id'),
+            actual_solar=models.Avg('actual_solar'),
+            total_solar=models.Max('total_solar') - models.Min('total_solar'),
+            timestamp=models.Min('timestamp')
+        )
+        return qs.values('id', 'timestamp', 'actual_solar', 'total_solar', )
+
+
+class GasMeasurementQuerySet(MeasurementQuerySet):
+    def filter_timestamp_aggregation(self, qs):
+        qs = qs.annotate(
+            id=models.Min('id'),
+            actual_gas=models.Avg('actual_gas'),
+            total_gas=models.Max('total_gas') - models.Min('total_gas'),
+            timestamp=models.Min('timestamp')
+        )
+        return qs.values('id', 'timestamp', 'actual_gas', 'total_gas', )
+
+
 class PowerMeasurementManager(models.Manager):
     """
     Manager for the PowerMeasurement model
@@ -96,13 +159,16 @@ class PowerMeasurementManager(models.Manager):
                 total_export_2=kwargs.get('export_2'),
             )
 
+    def get_queryset(self):
+        return PowerMeasurementQuerySet(model=self.model, using=self._db)
+
 
 class GasMeasurementManager(models.Manager):
     """
     Manager for the GasMeasurement model
     """
     use_for_related_fields = True
-    minimum_store_duration = timezone.timedelta(minutes=5)
+    minimum_store_duration = timezone.timedelta(minutes=4, seconds=30)
 
     def add_new_gas_measurement(self, meter_created, last_measurement, timestamp, gas, **kwargs):
         """
@@ -128,6 +194,9 @@ class GasMeasurementManager(models.Manager):
                 total_gas=gas,
             )
 
+    def get_queryset(self):
+        return GasMeasurementQuerySet(model=self.model, using=self._db)
+
 
 class SolarMeasurementManager(models.Manager):
     """
@@ -152,6 +221,9 @@ class SolarMeasurementManager(models.Manager):
                 actual_solar=kwargs.get('solar'),
                 total_solar=kwargs.get('total', 0),
             )
+
+    def get_queryset(self):
+        return SolarMeasurementQuerySet(model=self.model, using=self._db)
 
 
 class GroupMeterManager(models.Manager):

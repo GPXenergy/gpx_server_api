@@ -107,6 +107,98 @@ class SmartMeter(models.Model):
         return self.last_solar_measurement_
 
     @property
+    def timestamp_range_after(self):
+        return getattr(self, 'timestamp_range_after_', None)
+
+    @property
+    def timestamp_range_before(self):
+        return getattr(self, 'timestamp_range_before_', None)
+
+    @property
+    def power_set(self):
+        if not hasattr(self, '_power_set'):
+            self._power_set = PowerMeasurement.objects.get_queryset().filter_timestamp(
+                self.timestamp_range_after, self.timestamp_range_before
+            )
+        return self._power_set
+
+    @property
+    def gas_set(self):
+        if not hasattr(self, '_gas_set'):
+            self._gas_set = GasMeasurement.objects.get_queryset().filter_timestamp(
+                self.timestamp_range_after, self.timestamp_range_before
+            )
+        return self._gas_set
+
+    @property
+    def solar_set(self):
+        if not hasattr(self, '_solar_set'):
+            self._solar_set = SolarMeasurement.objects.get_queryset().filter_timestamp(
+                self.timestamp_range_before, self.timestamp_range_after
+            )
+        return self._solar_set
+
+    @property
+    def period_import_1(self):
+        if not hasattr(self, '_period_import_1'):
+            self._period_import_1 = self.powermeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_import_1') - models.Min('total_import_1'),
+            ).get('period')
+        return self._period_import_1
+
+    @property
+    def period_import_2(self):
+        if not hasattr(self, '_period_import_2'):
+            self._period_import_2 = self.powermeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_import_2') - models.Min('total_import_2'),
+            ).get('period')
+        return self._period_import_2
+
+    @property
+    def period_export_1(self):
+        if not hasattr(self, '_period_export_1'):
+            self._period_export_1 = self.powermeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_export_1') - models.Min('total_export_1'),
+            ).get('period')
+        return self._period_export_1
+
+    @property
+    def period_export_2(self):
+        if not hasattr(self, '_period_export_2'):
+            self._period_export_2 = self.powermeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_export_2') - models.Min('total_export_2'),
+            ).get('period')
+        return self._period_export_2
+
+    @property
+    def period_gas(self):
+        if not hasattr(self, '_period_gas'):
+            self._period_gas = self.gasmeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_gas') - models.Min('total_gas'),
+            ).get('period')
+        return self._period_gas
+
+    @property
+    def period_solar(self):
+        if not hasattr(self, '_period_solar'):
+            self._period_solar = self.solarmeasurement_set.filter(
+                timestamp__gte=self.timestamp_range_after, timestamp__lte=self.timestamp_range_before
+            ).aggregate(
+                period=models.Max('total_solar') - models.Min('total_solar'),
+            ).get('period')
+        return self._period_solar
+
+    @property
     def power_import(self):
         return self.total_power_import_1 + self.total_power_import_2
 

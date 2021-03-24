@@ -95,7 +95,7 @@ class TestUserMeterModel(MeterTestMixin, TestCase):
             },
             'gas': {
                 'sn': meter.sn_gas,
-                'timestamp': meter.gas_timestamp + timezone.timedelta(minutes=5),
+                'timestamp': meter.gas_timestamp + timezone.timedelta(minutes=4, seconds=30),
                 'gas': meter.total_gas + Decimal('13.321'),
             },
             'solar': {

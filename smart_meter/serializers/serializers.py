@@ -5,7 +5,8 @@ from smart_meter.models import SmartMeter, PowerMeasurement, GasMeasurement, Gro
 from users.serializers import SimpleUserSerializer
 from .serializer_helpers import SimpleMeterSerializer, GroupParticipantSerializer, NewPowerMeasurementSerializer, \
     NewSolarMeasurementSerializer, NewGasMeasurementSerializer, RealTimeParticipantSerializer, \
-    MeterGroupParticipationSerializer, SimpleGroupMeterSerializer, ParticipantLiveDataSerializer
+    MeterGroupParticipationSerializer, SimpleGroupMeterSerializer, ParticipantLiveDataSerializer, \
+    PowerMeasurementSetSerializer, GasMeasurementSetSerializer, SolarMeasurementSetSerializer
 
 
 class PowerMeasurementSerializer(serializers.ModelSerializer):
@@ -103,6 +104,26 @@ class MeterDetailSerializer(MeterListSerializer):
             'actual_solar',
         )
         read_only_fields = [field for field in fields if field not in ['name', 'visibility_type', 'type']]
+
+
+class MeterMeasurementsDetailSerializer(MeterDetailSerializer):
+    class Meta(MeterDetailSerializer.Meta):
+        fields = MeterDetailSerializer.Meta.fields + (
+            'power_set',
+            'gas_set',
+            'solar_set',
+            'period_import_1',
+            'period_import_2',
+            'period_export_1',
+            'period_export_2',
+            'period_gas',
+            'period_solar',
+        )
+        read_only_fields = fields
+
+    power_set = PowerMeasurementSetSerializer(many=True, read_only=True)
+    gas_set = GasMeasurementSetSerializer(many=True, read_only=True)
+    solar_set = SolarMeasurementSetSerializer(many=True, read_only=True)
 
 
 class GroupMeterListSerializer(serializers.ModelSerializer):

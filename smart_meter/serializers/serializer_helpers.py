@@ -1,11 +1,56 @@
-from abc import ABC
-
 import pytz
 from django.utils import timezone, dateparse
 from django.utils.datetime_safe import datetime
 from rest_framework import serializers
 
-from smart_meter.models import SmartMeter, GroupParticipant, GroupMeter
+from smart_meter.models import SmartMeter, GroupParticipant, GroupMeter, SolarMeasurement, PowerMeasurement, \
+    GasMeasurement
+
+
+class PowerMeasurementSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PowerMeasurement
+        fields = ()
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        return [
+            instance.get('timestamp'),
+            instance.get('actual_import'),
+            instance.get('actual_export'),
+            instance.get('total_import_1'),
+            instance.get('total_import_2'),
+            instance.get('total_export_1'),
+            instance.get('total_export_2'),
+        ]
+
+
+class GasMeasurementSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GasMeasurement
+        fields = ()
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        return [
+            instance.get('timestamp'),
+            instance.get('actual_gas'),
+            instance.get('total_gas'),
+        ]
+
+
+class SolarMeasurementSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SolarMeasurement
+        fields = ()
+        read_only_fields = fields
+
+    def to_representation(self, instance):
+        return [
+            instance.get('timestamp'),
+            instance.get('actual_solar'),
+            instance.get('total_solar'),
+        ]
 
 
 class SimpleMeterSerializer(serializers.ModelSerializer):

@@ -1,10 +1,10 @@
-from django.db.models import QuerySet, Min, Avg, Sum, Max
-from django.db.models.functions import TruncHour, TruncMinute, TruncDay
-from django.utils import timezone
+from django.db import models
+from django.db.models import QuerySet, Prefetch, Value, Min, Max
 from django_filters import rest_framework as filters
 from rest_framework.exceptions import ValidationError
 
-from smart_meter.models import Measurement, GroupParticipant
+from smart_meter.models import Measurement, GroupParticipant, SmartMeter, PowerMeasurement, GasMeasurement, \
+    SolarMeasurement
 
 
 class MeasurementFilter(filters.FilterSet):
@@ -14,64 +14,37 @@ class MeasurementFilter(filters.FilterSet):
         model = Measurement
         fields = ['timestamp']
 
-    def filter_timestamp(self, qs: QuerySet, field, value):
+    def filter_timestamp(self, qs, field, value):
         if value.start is None:
-            raise ValidationError("Requires start timestamp")
+            raise ValidationError('Requires start timestamp')
         elif value.stop is None:
-            raise ValidationError("Requires stop timestamp")
+            raise ValidationError('Requires stop timestamp')
 
-        qs = qs.filter(timestamp__range=(value.start, value.stop))
-        delta: timezone.timedelta = value.stop - value.start
-        if delta.days < 2:
-            qs = qs.annotate(
-                timestamp_trunc=TruncMinute('timestamp')
-            ).values('timestamp_trunc')
-        elif delta.days < 14:
-            qs = qs.annotate(
-                timestamp_trunc=TruncHour('timestamp')
-            ).values('timestamp_trunc')
-        else:
-            qs = qs.annotate(
-                timestamp_trunc=TruncDay('timestamp')
-            ).values('timestamp_trunc')
-
-        return self.filter_timestamp_aggregation(qs)
-
-    def filter_timestamp_aggregation(self, qs):
-        raise NotImplementedError
+        return qs.filter_timestamp(value.start, value.stop)
 
 
-class PowerMeasurementFilter(MeasurementFilter):
-    def filter_timestamp_aggregation(self, qs):
+class MeterMeasurementFilter(filters.FilterSet):
+    timestamp = filters.IsoDateTimeFromToRangeFilter(method='filter_timestamp')
+    measurements = filters.BooleanFilter(method='with_measurements')
+
+    class Meta:
+        model = SmartMeter
+        fields = ['timestamp']
+
+    def with_measurements(self, qs, field, value):
+        return qs
+
+    def filter_timestamp(self, qs, field, value):
+        if value.start is None:
+            raise ValidationError('Requires start timestamp')
+        elif value.stop is None:
+            raise ValidationError('Requires stop timestamp')
+
         qs = qs.annotate(
-            id=Min('id'),
-            actual_import=Avg('actual_import'),  # power as average over given time period
-            actual_export=Avg('actual_export'),  # power as average over given time period
-            timestamp=Min('timestamp')
+            timestamp_range_after_=Value(value.start, models.DateTimeField()),
+            timestamp_range_before_=Value(value.stop, models.DateTimeField()),
         )
-        return qs.values('id', 'timestamp', 'actual_import', 'actual_export')
-
-
-class GasMeasurementFilter(MeasurementFilter):
-    def filter_timestamp_aggregation(self, qs):
-        qs = qs.annotate(
-            id=Min('id'),
-            actual_gas=Avg('actual_gas'),
-            total_gas=Max('total_gas') - Min('total_gas'),
-            timestamp=Min('timestamp')
-        )
-        return qs.values('id', 'timestamp', 'actual_gas', 'total_gas',)
-
-
-class SolarMeasurementFilter(MeasurementFilter):
-    def filter_timestamp_aggregation(self, qs):
-        qs = qs.annotate(
-            id=Min('id'),
-            actual_solar=Avg('actual_solar'),
-            total_solar=Max('total_solar') - Min('total_solar'),
-            timestamp=Min('timestamp')
-        )
-        return qs.values('id', 'timestamp', 'actual_solar', 'total_solar',)
+        return qs
 
 
 class GroupParticipantFilter(filters.FilterSet):

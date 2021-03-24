@@ -8,16 +8,16 @@ from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateAP
 from rest_framework.views import APIView
 
 from gpx_server.utils.authentication import ApiKeyAuthentication
-from smart_meter.filters import GroupParticipantFilter, PowerMeasurementFilter, SolarMeasurementFilter, \
-    GasMeasurementFilter
+from smart_meter.filters import GroupParticipantFilter, MeasurementFilter, MeterMeasurementFilter
 from smart_meter.models import SmartMeter, GroupParticipant, GroupMeter, SolarMeasurement, GasMeasurement, \
     PowerMeasurement
 from smart_meter.permissions import UserOwnerOfMeter, UserManagerOfGroupMeter, RequestUserIsRelatedToGroupMeter, \
     RequestFromNodejs
-from smart_meter.serializers import MeterDetailSerializer, MeterListSerializer, GroupParticipationListSerializer, \
-    GroupMeterListSerializer, GroupParticipationDetailSerializer, GroupMeterDetailSerializer, \
+from smart_meter.serializers.serializers import MeterDetailSerializer, MeterListSerializer, GroupMeterDetailSerializer, \
+    GroupMeterListSerializer, GroupParticipationDetailSerializer, GroupParticipationListSerializer, \
     GasMeasurementSerializer, SolarMeasurementSerializer, PowerMeasurementSerializer, NewMeasurementSerializer, \
-    GroupMeterViewSerializer, GroupMeterInviteInfoSerializer, GroupLiveDataSerializer, NewMeasurementTestSerializer
+    GroupMeterViewSerializer, GroupMeterInviteInfoSerializer, GroupLiveDataSerializer, NewMeasurementTestSerializer, \
+    MeterMeasurementsDetailSerializer
 from users.permissions import RequestUserIsRelatedToUser
 from users.views import SubUserView
 
@@ -58,10 +58,16 @@ class UserMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
     `PUT`:
     `DELETE`:
     """
-    GET_permissions = [RequestUserIsRelatedToUser]
-    PUT_permissions = GET_permissions
-    DELETE_permissions = GET_permissions
-    serializer_class = MeterDetailSerializer
+    # GET_permissions = [RequestUserIsRelatedToUser]
+    # PUT_permissions = GET_permissions
+    # DELETE_permissions = GET_permissions
+    filter_backends = [DjangoFilterBackend]
+    filter_class = MeterMeasurementFilter
+
+    def get_serializer_class(self):
+        if self.request.query_params.get('measurements'):
+            return MeterMeasurementsDetailSerializer
+        return MeterDetailSerializer
 
     def get_queryset(self):
         return SmartMeter.objects.user_meters(self.user_id)
@@ -78,7 +84,7 @@ class PowerMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = PowerMeasurementFilter
+    filter_class = MeasurementFilter
     serializer_class = PowerMeasurementSerializer
 
     def get_queryset(self):
@@ -96,7 +102,7 @@ class GasMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = GasMeasurementFilter
+    filter_class = MeasurementFilter
     serializer_class = GasMeasurementSerializer
 
     def get_queryset(self):
@@ -114,7 +120,7 @@ class SolarMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = SolarMeasurementFilter
+    filter_class = MeasurementFilter
     serializer_class = SolarMeasurementSerializer
 
     def get_queryset(self):
