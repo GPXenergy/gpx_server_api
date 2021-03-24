@@ -85,7 +85,7 @@ class MeasurementQuerySet(models.QuerySet):
                 timestamp_trunc=functions.TruncDay('timestamp')
             ).values('timestamp_trunc')
 
-        return self.filter_timestamp_aggregation(qs)
+        return self.filter_timestamp_aggregation(qs).order_by('id')
 
     def filter_timestamp_aggregation(self, qs):
         raise NotImplementedError

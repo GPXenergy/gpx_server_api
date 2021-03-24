@@ -117,7 +117,7 @@ class SmartMeter(models.Model):
     @property
     def power_set(self):
         if not hasattr(self, '_power_set'):
-            self._power_set = PowerMeasurement.objects.get_queryset().filter_timestamp(
+            self._power_set = self.powermeasurement_set.get_queryset().filter_timestamp(
                 self.timestamp_range_after, self.timestamp_range_before
             )
         return self._power_set
@@ -125,7 +125,7 @@ class SmartMeter(models.Model):
     @property
     def gas_set(self):
         if not hasattr(self, '_gas_set'):
-            self._gas_set = GasMeasurement.objects.get_queryset().filter_timestamp(
+            self._gas_set = self.gasmeasurement_set.objects.get_queryset().filter_timestamp(
                 self.timestamp_range_after, self.timestamp_range_before
             )
         return self._gas_set
@@ -133,7 +133,7 @@ class SmartMeter(models.Model):
     @property
     def solar_set(self):
         if not hasattr(self, '_solar_set'):
-            self._solar_set = SolarMeasurement.objects.get_queryset().filter_timestamp(
+            self._solar_set = self.solarmeasurement_set.objects.get_queryset().filter_timestamp(
                 self.timestamp_range_before, self.timestamp_range_after
             )
         return self._solar_set
