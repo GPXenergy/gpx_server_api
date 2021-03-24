@@ -134,7 +134,7 @@ class SmartMeter(models.Model):
     def solar_set(self):
         if not hasattr(self, '_solar_set'):
             self._solar_set = self.solarmeasurement_set.get_queryset().filter_timestamp(
-                self.timestamp_range_before, self.timestamp_range_after
+                self.timestamp_range_after, self.timestamp_range_before
             )
         return self._solar_set
 
