@@ -261,7 +261,11 @@ class NewMeasurementView(CreateAPIView):
     serializer_class = NewMeasurementSerializer
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        user_agent: str = self.request.META.get('HTTP_USER_AGENT', None)
+        gpx_version = None
+        if user_agent and user_agent.split('/')[0] == 'GPXCONN':
+            gpx_version = user_agent.split('/')[1]
+        serializer.save(user=self.request.user, gpx_version=gpx_version)
 
 
 class GroupLiveDataView(ListAPIView):

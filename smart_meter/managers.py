@@ -26,7 +26,7 @@ class SmartMeterManager(models.Manager):
         solar = solar or {}
         meter, created = self.update_or_create(
             defaults=dict(
-                gpx_version=gpx_version or 'undefined',
+                gpx_version=gpx_version or 'Unknown',
                 sn_power=power.get('sn'),
                 power_timestamp=power.get('timestamp'),
                 actual_power_import=power.get('actual_import'),

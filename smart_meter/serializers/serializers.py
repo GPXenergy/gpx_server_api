@@ -69,6 +69,7 @@ class MeterListSerializer(serializers.ModelSerializer):
             'pk',
             'name',
             'type',
+            'gpx_version',
             'visibility_type',
             'last_update',
             'power_timestamp',
