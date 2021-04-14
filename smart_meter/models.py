@@ -71,10 +71,10 @@ class SmartMeter(models.Model):
     @property
     def active(self):
         """
-        Property if the meter was updated in the past day
+        Property if the meter was updated in the past 2 hours
         :return: bool
         """
-        return self.last_update > timezone.now() - timezone.timedelta(days=1)
+        return self.last_update > timezone.now() - timezone.timedelta(hours=2)
 
     @property
     def last_power_measurement(self):
