@@ -222,6 +222,32 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.assertEqual(for_comparison.second, self.meter1.gas_timestamp.second)
 
     @tag('variation')
+    def test_new_measurement_view_post_meter_dsmr22_format_as_user_success(self):
+        # given
+        self.client.force_authenticate(self.user)
+        payload = self.default_payload
+        gas_timestamp = timezone.now().astimezone(pytz.timezone('Europe/Amsterdam'))
+        payload['power']['timestamp'] = 'now'  # will use timezone.now in endpoint
+        payload['gas']['timestamp'] = gas_timestamp.strftime('%y%m%d%H%M%S')
+        # when
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_201_CREATED, response.status_code)
+        self.meter1.refresh_from_db()
+        for_comparison = gas_timestamp.astimezone(pytz.utc)
+        self.assertEqual(for_comparison.year, self.meter1.power_timestamp.year)
+        self.assertEqual(for_comparison.month, self.meter1.power_timestamp.month)
+        self.assertEqual(for_comparison.day, self.meter1.power_timestamp.day)
+        self.assertEqual(for_comparison.hour, self.meter1.power_timestamp.hour)
+        self.assertEqual(for_comparison.minute, self.meter1.power_timestamp.minute)
+        self.assertEqual(for_comparison.year, self.meter1.gas_timestamp.year)
+        self.assertEqual(for_comparison.month, self.meter1.gas_timestamp.month)
+        self.assertEqual(for_comparison.day, self.meter1.gas_timestamp.day)
+        self.assertEqual(for_comparison.hour, self.meter1.gas_timestamp.hour)
+        self.assertEqual(for_comparison.minute, self.meter1.gas_timestamp.minute)
+        self.assertEqual(for_comparison.second, self.meter1.gas_timestamp.second)
+
+    @tag('variation')
     def test_new_measurement_view_post_real_data_success(self):
         # given
         self.client.force_authenticate(self.user)
@@ -290,28 +316,6 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
         meter = SmartMeter.objects.get(sn_power=self.default_payload['power']['sn'])
         self.assertEqual(meter.gpx_version, '1.2.3')
-
-    # @tag('permission')
-    # def test_new_measurement_view_post_as_other_user_fail_meter_connected_to_another_user(self):
-    #     # given
-    #     self.client.force_authenticate(self.create_user())
-    #     payload = self.default_payload
-    #     # when
-    #     response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
-    #     # then
-    #     self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
-    #     self.assertEqual("Meter connected to another user", response.data[0])
-
-    # @tag('permission')
-    # def test_new_measurement_view_post_as_other_user_api_key_fail_meter_connected_to_another_user(self):
-    #     # given
-    #     self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.create_user().api_key)
-    #     payload = self.default_payload
-    #     # when
-    #     response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
-    #     # then
-    #     self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
-    #     self.assertEqual("Meter connected to another user", response.data[0])
 
     @tag('permission')
     def test_new_measurement_view_post_as_visitor_fail_unauthorized(self):

@@ -130,6 +130,19 @@ class _NewMeasurementSerializer(serializers.Serializer):
             # timestamp format from smart meter
             timestamp = datetime.strptime(value[:-1], "%y%m%d%H%M%S")
             return timezone.make_aware(timestamp, timezone=pytz.timezone('Europe/Amsterdam'), is_dst=value[-1] == 'W')
+        if not timestamp and value:
+            # timestamp format from smart meter dsmr2.2 (without W or S indication)
+            try:
+                timestamp = datetime.strptime(value, "%y%m%d%H%M%S")
+            except ValueError as e:
+                # not a valid timestamp
+                timestamp = None
+        if not timestamp and value == 'now':
+            # for dsmr2.2 power stamps, where there is none, the connector sends "now" for the api to define
+            timestamp = timezone.now()
+
+        if not timestamp:
+            raise serializers.ValidationError('Invalid timestamp')
 
         if timezone.is_aware(timestamp):
             return timestamp
