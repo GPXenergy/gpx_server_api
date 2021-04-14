@@ -374,10 +374,6 @@ class NewMeasurementSerializer(serializers.ModelSerializer):
     solar = NewSolarMeasurementSerializer(write_only=True, allow_null=True, required=False)
 
     def create(self, validated_data):
-        user = validated_data.get('user')
-        sn_power = validated_data.get('power').get('sn')
-        # if SmartMeter.objects.exclude(user=user).filter(sn_power=sn_power).exists():
-        #     raise serializers.ValidationError("Meter connected to another user")
         return SmartMeter.objects.new_measurement(
             **validated_data,
         )
@@ -393,10 +389,6 @@ class NewMeasurementTestSerializer(NewMeasurementSerializer):
     solar = NewSolarMeasurementSerializer(allow_null=True, required=False)
 
     def create(self, validated_data):
-        user = validated_data.get('user')
-        sn_power = validated_data.get('power').get('sn')
-        if SmartMeter.objects.exclude(user=user).filter(sn_power=sn_power).exists():
-            raise serializers.ValidationError("Meter connected to another user")
         return validated_data
 
 
