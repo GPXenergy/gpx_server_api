@@ -267,7 +267,7 @@ class TestMeterParticipationDetailPatch(MeterTestMixin, TestCase):
         # given
         self.client.force_authenticate(self.user)
         payload = {
-            'active': True,
+            'active': False,
         }
         # when
         response = self.client.patch(

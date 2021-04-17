@@ -355,7 +355,7 @@ class GroupParticipationDetailSerializer(serializers.ModelSerializer):
     def update(self, instance: GroupParticipant, validated_data):
         if not instance.active:
             raise serializers.ValidationError('Groepparticipatie is niet meer actief')
-        if validated_data.pop('active', False):
+        if validated_data.pop('active', None) is False:
             instance.leave()
         return super().update(instance, validated_data)
 
