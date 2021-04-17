@@ -99,6 +99,7 @@ class GroupParticipantSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     user_pk = serializers.IntegerField(read_only=True, source='meter.user_id')
+    last_activity = serializers.DateTimeField(read_only=True, source='meter.last_update')
 
 
 class RealTimeParticipantSerializer(serializers.ModelSerializer):
@@ -119,10 +120,7 @@ class RealTimeParticipantSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    last_activity = serializers.SerializerMethodField()
-
-    def get_last_activity(self, obj: GroupParticipant):
-        return obj.meter.last_update
+    last_activity = serializers.DateTimeField(read_only=True, source='meter.last_update')
 
 
 class _NewMeasurementSerializer(serializers.Serializer):
