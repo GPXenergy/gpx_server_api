@@ -93,8 +93,11 @@ class GroupParticipantSerializer(serializers.ModelSerializer):
             'total_import',
             'total_export',
             'total_gas',
+            'user_pk',
         )
         read_only_fields = fields
+
+    user_pk = serializers.IntegerField(read_only=True, source='meter.user_id')
 
 
 class RealTimeParticipantSerializer(serializers.ModelSerializer):

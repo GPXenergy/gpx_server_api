@@ -163,6 +163,10 @@ class GroupMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
     DELETE_permissions = PUT_permissions
     serializer_class = GroupMeterDetailSerializer
 
+    @property
+    def meter_id(self):
+        return int(self.kwargs.get('pk'))
+
     def get_queryset(self):
         return GroupMeter.objects.by_user(self.user_id)
 

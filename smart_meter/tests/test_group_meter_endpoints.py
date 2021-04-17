@@ -48,7 +48,7 @@ class TestGroupMeterListGet(MeterTestMixin, TestCase):
         # group 1
         self.assertEqual(self.group_1.pk, response.data[0].get('pk'))
         self.assertEqual(self.group_1.name, response.data[0].get('name'))
-        self.assertEqual(self.group_1.manager_id, response.data[0].get('manager').get('pk'))
+        self.assertEqual(self.group_1.manager_id, response.data[0].get('manager'))
         self.assertEqual(self.group_1.created_on, parse_datetime(response.data[0].get('created_on')))
         self.assertEqual(self.group_1.public, response.data[0].get('public'))
         self.assertEqual(str(self.group_1.public_key), response.data[0].get('public_key'))
@@ -56,7 +56,7 @@ class TestGroupMeterListGet(MeterTestMixin, TestCase):
         # group 2
         self.assertEqual(self.group_2.pk, response.data[1].get('pk'))
         self.assertEqual(self.group_2.name, response.data[1].get('name'))
-        self.assertEqual(self.group_2.manager_id, response.data[1].get('manager').get('pk'))
+        self.assertEqual(self.group_2.manager_id, response.data[1].get('manager'))
         self.assertEqual(self.group_2.created_on, parse_datetime(response.data[1].get('created_on')))
         self.assertEqual(self.group_2.public, response.data[1].get('public'))
         self.assertEqual(str(self.group_2.public_key), response.data[1].get('public_key'))
@@ -116,7 +116,7 @@ class TestGroupMeterListPost(MeterTestMixin, TestCase):
         # then
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
         self.assertEqual(payload['name'], response.data.get('name'))
-        self.assertEqual(self.user.pk, response.data.get('manager').get('pk'))
+        self.assertEqual(self.user.pk, response.data.get('manager'))
         self.assertEqual(payload['public'], response.data.get('public'))
         self.assertIsNotNone(response.data.get('pk'))
         self.assertIsNotNone(response.data.get('created_on'))
@@ -229,7 +229,7 @@ class TestGroupMeterDetailGet(MeterTestMixin, TestCase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(self.group_1.pk, response.data.get('pk'))
         self.assertEqual(self.group_1.name, response.data.get('name'))
-        self.assertEqual(self.group_1.manager_id, response.data.get('manager').get('pk'))
+        self.assertEqual(self.group_1.manager_id, response.data.get('manager'))
         self.assertEqual(self.group_1.created_on, parse_datetime(response.data.get('created_on')))
         self.assertEqual(self.group_1.public, response.data.get('public'))
         self.assertEqual(str(self.group_1.public_key), response.data.get('public_key'))
@@ -247,7 +247,7 @@ class TestGroupMeterDetailGet(MeterTestMixin, TestCase):
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(self.group_2.pk, response.data.get('pk'))
         self.assertEqual(self.group_2.name, response.data.get('name'))
-        self.assertEqual(self.group_2.manager_id, response.data.get('manager').get('pk'))
+        self.assertEqual(self.group_2.manager_id, response.data.get('manager'))
         self.assertEqual(self.group_2.created_on, parse_datetime(response.data.get('created_on')))
         self.assertEqual(self.group_2.public, response.data.get('public'))
         self.assertEqual(str(self.group_2.public_key), response.data.get('public_key'))
@@ -314,7 +314,6 @@ class TestGroupMeterDetailPatch(MeterTestMixin, TestCase):
             'pk': 'read only field',
             'created_on': 'read only field',
             'invitation_key': 'read only field',
-            'manager': 'read only field',
         }
         # when
         response = self.client.patch(
@@ -326,7 +325,54 @@ class TestGroupMeterDetailPatch(MeterTestMixin, TestCase):
         self.assertEqual(self.group_1.pk, response.data.get('pk'))
         self.assertEqual(self.group_1.created_on, parse_datetime(response.data.get('created_on')))
         self.assertEqual(str(self.group_1.invitation_key), response.data.get('invitation_key'))
-        self.assertEqual(self.group_1.manager.pk, response.data.get('manager').get('pk'))
+        self.assertEqual(self.group_1.manager.pk, response.data.get('manager'))
+
+    @tag('validation')
+    def test_user_group_meter_detail_patch_new_manager_as_user_manager_success(self):
+        # given
+        self.client.force_authenticate(self.user)
+        other_participant = self.create_group_participation(self.create_smart_meter(), self.group_1)
+        payload = {
+            'manager': other_participant.meter.user_id,
+        }
+        # when
+        response = self.client.patch(
+            self.MeterUrls.user_group_meter_url(self.user.pk, self.group_1.pk), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        self.assertEqual(other_participant.meter.user_id, response.data.get('manager'))
+
+    @tag('validation')
+    def test_user_group_meter_detail_patch_new_manager_as_user_manager_fail_old_participant(self):
+        # given
+        self.client.force_authenticate(self.user)
+        other_participant = self.create_group_participation(self.create_smart_meter(), self.group_1)
+        other_participant.leave()
+        other_participant.save()
+        payload = {
+            'manager': other_participant.meter.user_id,
+        }
+        # when
+        response = self.client.patch(
+            self.MeterUrls.user_group_meter_url(self.user.pk, self.group_1.pk), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data.get('manager'))
+
+    @tag('validation')
+    def test_user_group_meter_detail_patch_new_manager_as_user_manager_fail_not_group_member(self):
+        # given
+        self.client.force_authenticate(self.user)
+        some_user = self.create_user()
+        payload = {
+            'manager': some_user.pk,
+        }
+        # when
+        response = self.client.patch(
+            self.MeterUrls.user_group_meter_url(self.user.pk, self.group_1.pk), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data.get('manager'))
 
     @tag('validation')
     def test_user_group_meter_detail_patch_reset_invitation_key_as_user_manager_success(self):

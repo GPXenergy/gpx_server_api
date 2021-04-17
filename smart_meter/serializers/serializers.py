@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from smart_meter.models import SmartMeter, PowerMeasurement, GasMeasurement, GroupParticipant, GroupMeter, \
     SolarMeasurement
+from users.models import User
 from users.serializers import SimpleUserSerializer
 from .serializer_helpers import SimpleMeterSerializer, GroupParticipantSerializer, NewPowerMeasurementSerializer, \
     NewSolarMeasurementSerializer, NewGasMeasurementSerializer, RealTimeParticipantSerializer, \
@@ -156,7 +157,6 @@ class GroupMeterListSerializer(serializers.ModelSerializer):
             'meter': {'write_only': True}
         }
 
-    manager = SimpleUserSerializer(read_only=True)
     meter = serializers.PrimaryKeyRelatedField(queryset=[], write_only=True)
 
     def get_fields(self):
@@ -201,12 +201,17 @@ class GroupMeterDetailSerializer(GroupMeterListSerializer):
             'pk',
             'created_on',
             'invitation_key',
-            'manager',
         )
 
     new_invitation_key = serializers.BooleanField(default=False, required=False, write_only=True)
     public_key = serializers.CharField(allow_blank=True)
     participants = GroupParticipantSerializer(many=True, read_only=True, source='active_participants')
+    manager = serializers.PrimaryKeyRelatedField(queryset=[])
+
+    def get_fields(self):
+        fields = super().get_fields()
+        fields['manager'].queryset = User.objects.active_in_group(self.context['view'].meter_id).exclude(pk=self.context['view'].user_id)
+        return fields
 
     def validate_public_key(self, key):
         meter_id = self.context['view'].kwargs.get('pk')
