@@ -87,6 +87,7 @@ class GroupParticipantSerializer(serializers.ModelSerializer):
             'pk',
             'display_name',
             'joined_on',
+            'last_activity',
             'type',
             'left_on',
             'active',
