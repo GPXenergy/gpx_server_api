@@ -98,9 +98,9 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
         participant.leave()
         participant.save()
         # then
-        self.assertEqual(0, participant.actual_power)
-        self.assertEqual(0, participant.actual_gas)
-        self.assertEqual(0, participant.actual_solar)
+        self.assertEqual(None, participant.actual_power)
+        self.assertEqual(None, participant.actual_gas)
+        self.assertEqual(None, participant.actual_solar)
 
     @tag('model')
     def test_group_participant_leave_success(self):

@@ -77,6 +77,22 @@ class SmartMeter(models.Model):
         return self.last_update > timezone.now() - timezone.timedelta(hours=2)
 
     @property
+    def gas_active(self):
+        """
+        Property if the solar value was updated in the past 2 hours
+        :return: bool
+        """
+        return self.solar_timestamp and self.solar_timestamp > timezone.now() - timezone.timedelta(hours=2)
+
+    @property
+    def solar_active(self):
+        """
+        Property if the gas value was updated in the past 2 hours
+        :return: bool
+        """
+        return self.gas_timestamp and self.gas_timestamp > timezone.now() - timezone.timedelta(hours=2)
+
+    @property
     def last_power_measurement(self):
         """
         Get the last power measurement
@@ -350,7 +366,7 @@ class GroupMeter(models.Model):
         Get actual_power from all active_participants
         :return: actual_power in the group
         """
-        return sum([participant.actual_power for participant in self.active_participants])
+        return sum([participant.actual_power for participant in self.active_participants if participant.actual_power])
 
     @property
     def actual_gas(self):
@@ -358,7 +374,7 @@ class GroupMeter(models.Model):
         Get actual_gas from all active_participants
         :return: actual_gas in the group
         """
-        return sum([participant.actual_gas for participant in self.active_participants])
+        return sum([participant.actual_gas for participant in self.active_participants if participant.actual_gas])
 
     @property
     def actual_solar(self):
@@ -366,7 +382,7 @@ class GroupMeter(models.Model):
         Get actual_solar from all active_participants
         :return: actual_solar in the group
         """
-        return sum([participant.actual_solar for participant in self.active_participants])
+        return sum([participant.actual_solar for participant in self.active_participants if participant.actual_solar])
 
     def new_invitation_key(self):
         self.invitation_key = uuid.uuid4()
@@ -438,19 +454,16 @@ class GroupParticipant(models.Model):
     def actual_power(self):
         if self.active and self.meter.active:
             return self.meter.actual_power_export - self.meter.actual_power_import
-        return 0
 
     @property
     def actual_gas(self):
-        if self.active and self.meter.active and self.meter.actual_gas:
+        if self.active and self.meter.gas_active:
             return self.meter.actual_gas
-        return 0
 
     @property
     def actual_solar(self):
-        if self.active and self.meter.active and self.meter.actual_solar:
+        if self.active and self.meter.solar_active:
             return self.meter.actual_solar
-        return 0
 
     @property
     def type(self):
