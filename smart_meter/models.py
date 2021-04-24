@@ -454,6 +454,7 @@ class GroupParticipant(models.Model):
     def actual_power(self):
         if self.active and self.meter.active:
             return self.meter.actual_power_export - self.meter.actual_power_import
+        return 0
 
     @property
     def actual_gas(self):
