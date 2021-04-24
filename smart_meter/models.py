@@ -79,18 +79,18 @@ class SmartMeter(models.Model):
     @property
     def gas_active(self):
         """
-        Property if the solar value was updated in the past 2 hours
+        Property if the gas value was updated in the past 2 hours
         :return: bool
         """
-        return self.solar_timestamp and self.gas_timestamp > timezone.now() - timezone.timedelta(hours=2)
+        return self.gas_timestamp and self.gas_timestamp > timezone.now() - timezone.timedelta(hours=2)
 
     @property
     def solar_active(self):
         """
-        Property if the gas value was updated in the past 2 hours
+        Property if the solar value was updated in the past 2 hours
         :return: bool
         """
-        return self.gas_timestamp and self.solar_timestamp > timezone.now() - timezone.timedelta(hours=2)
+        return self.solar_timestamp and self.solar_timestamp > timezone.now() - timezone.timedelta(hours=2)
 
     @property
     def last_power_measurement(self):
