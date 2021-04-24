@@ -460,6 +460,7 @@ class GroupParticipant(models.Model):
     def actual_gas(self):
         if self.active and self.meter.gas_active:
             return self.meter.actual_gas
+        return 0
 
     @property
     def actual_solar(self):
