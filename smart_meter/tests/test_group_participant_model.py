@@ -98,8 +98,8 @@ class TestGroupParticipantModel(MeterTestMixin, TestCase):
         participant.leave()
         participant.save()
         # then
-        self.assertEqual(None, participant.actual_power)
-        self.assertEqual(None, participant.actual_gas)
+        self.assertEqual(0, participant.actual_power)
+        self.assertEqual(0, participant.actual_gas)
         self.assertEqual(None, participant.actual_solar)
 
     @tag('model')
