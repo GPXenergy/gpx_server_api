@@ -1,4 +1,5 @@
 from django.contrib.auth.models import UserManager as BaseUserManager
+from django.db import models
 
 
 class UserManager(BaseUserManager):
@@ -14,6 +15,11 @@ class UserManager(BaseUserManager):
             meters__group_participations__group=group_id,
             meters__group_participations__left_on__isnull=True,
         ).distinct()
+
+    def user_statistics(self):
+        return self.aggregate(
+            total_users=models.Count('pk'),
+        )
 
     def create(self, **kwargs):
         """

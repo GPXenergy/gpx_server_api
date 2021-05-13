@@ -277,6 +277,21 @@ class TestMeterParticipationDetailPatch(MeterTestMixin, TestCase):
         self.assertFalse(response.data.get('active'))
 
     @tag('validation')
+    def test_user_meter_participation_detail_patch_leave_as_user_fail_is_group_manager(self):
+        # given
+        self.client.force_authenticate(self.user)
+        self.group.manager = self.user
+        self.group.save()
+        payload = {
+            'active': False,
+        }
+        # when
+        response = self.client.patch(
+            self.MeterUrls.meter_group_participation_url(self.user.pk, self.participant.pk), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+
+    @tag('validation')
     def test_user_meter_participation_detail_patch_as_user_fail_participant_inactive(self):
         # given
         self.client.force_authenticate(self.user)

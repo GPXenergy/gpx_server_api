@@ -21,6 +21,12 @@ class SmartMeterManager(models.Manager):
             user.save(update_fields=['default_meter'])
         return meter
 
+    def meter_statistics(self):
+        return self.aggregate(
+            live_meters=models.Count('pk', models.Q(last_update__gte=timezone.now() - timezone.timedelta(hours=2))),
+            total_meters=models.Count('pk'),
+        )
+
     def new_measurement(self, user, power, gas=None, solar=None, gpx_version=None):
         gas = gas or {}
         solar = solar or {}
@@ -269,6 +275,12 @@ class GroupMeterManager(models.Manager):
         just_now = timezone.now() - timezone.timedelta(seconds=15)
         return self.filter(participants__left_on__isnull=True,
                            participants__meter__last_update__gte=just_now, pk__in=group_ids).distinct()
+
+    def group_meter_statistics(self):
+        return self.aggregate(
+            public_groups=models.Count('pk', models.Q(public=True)),
+            total_groups=models.Count('pk'),
+        )
 
     @transaction.atomic()
     def create(self, manager, meter, **kwargs):

@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from smart_meter.models import SmartMeter, GroupMeter
+from smart_meter.models import SmartMeter, GroupMeter, GroupParticipant
 
 
 class UserOwnerOfMeter(BasePermission):
@@ -37,20 +37,46 @@ class UserManagerOfGroupMeter(BasePermission):
         return obj.manager_id == getattr(view, 'user_id')
 
 
-class RequestUserIsRelatedToGroupMeter(BasePermission):
+class RequestUserIsPartOfGroupMeter(BasePermission):
     """
     Permission to check if the user is related to the
     user that made the request (through models)
     """
 
-    def has_object_permission(self, request, view, obj: GroupMeter):
+    def has_permission(self, request, view):
         """
         Return `True` if the request is is part of the group meter, `False`
         otherwise.
         """
         if not request.user or not request.user.is_authenticated:
             return False
-        return obj.participants.filter(meter__user_id=request.user.pk, left_on__isnull=True).exists()
+        assert hasattr(view, 'group_id'), (
+                '%s requires property group_id' % (view.__class__.__name__,))
+        group_id = getattr(view, 'group_id')
+        return GroupParticipant.objects.filter(
+            meter__user_id=request.user.pk, left_on__isnull=True, group_id=group_id
+        ).exists()
+
+
+class RequestUserIsManagerOfGroupMeter(BasePermission):
+    """
+    Permission to check if the user is related to the
+    user that made the request (through models)
+    """
+
+    def has_permission(self, request, view):
+        """
+        Return `True` if the request is is part of the group meter, `False`
+        otherwise.
+        """
+        if not request.user or not request.user.is_authenticated:
+            return False
+        assert hasattr(view, 'group_id'), (
+                '%s requires property group_id' % (view.__class__.__name__,))
+        group_id = getattr(view, 'group_id')
+        return GroupParticipant.objects.filter(
+            meter__user_id=request.user.pk, left_on__isnull=True, group_id=group_id
+        ).exists()
 
 
 class RequestFromNodejs(BasePermission):

@@ -5,6 +5,7 @@ from knox.views import LoginView as KnoxLoginView
 from rest_condition import Not
 from rest_framework import permissions
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, RetrieveAPIView, RetrieveUpdateDestroyAPIView
 
 from users.models import User
@@ -73,3 +74,12 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return User.objects.active_users()
+
+    def perform_destroy(self, instance: User):
+        group = instance.manager_groups.first()
+        if group:
+            raise ValidationError(
+                'Kan account "%s" niet verwijderen, je bent momenteel manager van de groep "%s". Draag de groep eerst '
+                'over of verwijder de groep en probeer het daarna nog eens.' % (instance.username, group.name)
+            )
+        super().perform_destroy(instance)

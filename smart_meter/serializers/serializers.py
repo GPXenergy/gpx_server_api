@@ -313,11 +313,11 @@ class GroupParticipationListSerializer(serializers.ModelSerializer):
 
     def validate_meter(self, meter: SmartMeter):
         if meter.group_participations.active().exists():
-            raise serializers.ValidationError('Deze meter heeft is al onderdeel van een groepsmeter!')
+            raise serializers.ValidationError('Deze meter is al onderdeel van een groepsmeter!')
         return meter
 
     def validate_group(self, group: GroupMeter):
-        if group.participants.count() >= 10:
+        if group.participants.active().count() >= 10:
             raise serializers.ValidationError('Groep "%s" heeft geen ruimte voor nieuwe leden!' % group.name)
         return group
 
@@ -325,7 +325,7 @@ class GroupParticipationListSerializer(serializers.ModelSerializer):
         group = attrs.get('group')
         invitation_key = attrs.pop('invitation_key')
         if not group.allow_invite or str(group.invitation_key) != invitation_key:
-            raise serializers.ValidationError({'invitation_key': ['Deze uitnodiging is niet geldig']})
+            raise serializers.ValidationError({'invitation_key': ['Deze uitnodiging is niet meer geldig']})
         return super().validate(attrs)
 
     def create(self, validated_data):
@@ -355,7 +355,10 @@ class GroupParticipationDetailSerializer(serializers.ModelSerializer):
     def update(self, instance: GroupParticipant, validated_data):
         if not instance.active:
             raise serializers.ValidationError('Groepparticipatie is niet meer actief')
-        if validated_data.pop('active', None) is False:
+        active = validated_data.pop('active', None)
+        if active is False:
+            if instance.group.manager_id == instance.meter.user_id:
+                raise serializers.ValidationError('Je kan de groep niet verlaten als je nog manager bent!')
             instance.leave()
         return super().update(instance, validated_data)
 

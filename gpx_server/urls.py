@@ -20,6 +20,8 @@ from rest_framework.renderers import BrowsableAPIRenderer
 from rest_framework.settings import api_settings
 from rest_framework.urlpatterns import format_suffix_patterns
 
+from gpx_server.stats_view import StatisticsView
+
 
 def _root(request):
     return HttpResponse("<html><body>GPX API v1.0</body></html>")
@@ -31,6 +33,7 @@ urlpatterns = [
 
 api_routing = [
     path('api/', _root),
+    path('api/stats/', StatisticsView.as_view()),
     path('api/auth/', include('users.urls.auth_urls')),
     path('api/users/', include('users.urls.user_urls')),
     path('api/meters/', include('smart_meter.urls.meter_urls')),

@@ -3,6 +3,7 @@ from django.views.generic.base import View
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions
 from rest_framework.decorators import authentication_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateAPIView, ListCreateAPIView, \
     RetrieveUpdateDestroyAPIView, RetrieveAPIView
 from rest_framework.views import APIView
@@ -11,8 +12,8 @@ from gpx_server.utils.authentication import ApiKeyAuthentication
 from smart_meter.filters import GroupParticipantFilter, MeasurementFilter, MeterMeasurementFilter
 from smart_meter.models import SmartMeter, GroupParticipant, GroupMeter, SolarMeasurement, GasMeasurement, \
     PowerMeasurement
-from smart_meter.permissions import UserOwnerOfMeter, UserManagerOfGroupMeter, RequestUserIsRelatedToGroupMeter, \
-    RequestFromNodejs
+from smart_meter.permissions import UserOwnerOfMeter, UserManagerOfGroupMeter, RequestUserIsPartOfGroupMeter, \
+    RequestFromNodejs, RequestUserIsManagerOfGroupMeter
 from smart_meter.serializers.serializers import MeterDetailSerializer, MeterListSerializer, GroupMeterDetailSerializer, \
     GroupMeterListSerializer, GroupParticipationDetailSerializer, GroupParticipationListSerializer, \
     GasMeasurementSerializer, SolarMeasurementSerializer, PowerMeasurementSerializer, NewMeasurementSerializer, \
@@ -30,6 +31,16 @@ class SubMeterView(View):
     @property
     def meter_id(self):
         return self.kwargs.get('meter_pk')
+
+
+class SubGroupMeterView(View):
+    """
+    Mixin for API views that are under the group meter urls, like /groups/x/...
+    """
+
+    @property
+    def group_id(self):
+        return self.kwargs.get('group_pk')
 
 
 class UserMeterListView(SubUserView, ListAPIView):
@@ -71,6 +82,15 @@ class UserMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return SmartMeter.objects.user_meters(self.user_id)
+
+    def perform_destroy(self, instance: SmartMeter):
+        group = instance.group_participation.group if instance.group_participation else None
+        if group and group.manager_id == self.user_id:
+            raise ValidationError(
+                'Kan meter "%s" niet verwijderen, je bent momenteel manager van de groep "%s". Draag de groep eerst '
+                'over of verwijder de groep en probeer het daarna nog eens.' % (instance.name, group.name)
+            )
+        super().perform_destroy(instance)
 
 
 class PowerMeasurementListView(SubUserView, SubMeterView, ListAPIView):
@@ -171,6 +191,42 @@ class GroupMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
         return GroupMeter.objects.by_user(self.user_id)
 
 
+class GroupParticipantListView(SubGroupMeterView, ListCreateAPIView):
+    """
+    List of group participants for a meter
+    Available request methods: GET, POST
+    `GET`:
+    `POST`:
+    """
+    GET_permissions = [RequestUserIsPartOfGroupMeter]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['display_name']
+    ordering_fields = ['left_on']
+    ordering = ['pk']
+    filter_class = None  # TODO
+    serializer_class = GroupMeterListSerializer
+
+    def get_queryset(self):
+        return GroupParticipant.objects.filter(group_id=self.group_id)
+
+
+class GroupParticipantDetailView(SubGroupMeterView, RetrieveUpdateDestroyAPIView):
+    """
+    Detail of a group participant, can retrieve, update destroy. Requires user to be manager of meter
+    Available request methods: GET, PUT, DELETE
+    `GET`:
+    `PUT`:
+    `DELETE`:
+    """
+    GET_permissions = [RequestUserIsPartOfGroupMeter]
+    PUT_permissions = [RequestUserIsManagerOfGroupMeter]
+    DELETE_permissions = PUT_permissions
+    serializer_class = GroupMeterDetailSerializer
+
+    def get_queryset(self):
+        return GroupParticipant.objects.filter(group_id=self.group_id)
+
+
 class MeterParticipationListView(SubUserView, ListCreateAPIView):
     """
     List of all participation for a meter.
@@ -230,7 +286,11 @@ class GroupDisplayView(SubUserView, RetrieveAPIView):
     Returns group meter info and participant info
     """
     serializer_class = GroupMeterViewSerializer
-    GET_permissions = [RequestUserIsRelatedToGroupMeter]
+    GET_permissions = [RequestUserIsPartOfGroupMeter]
+
+    @property
+    def group_id(self):
+        return self.kwargs.get('pk')
 
     def get_queryset(self):
         return GroupMeter.objects.all()

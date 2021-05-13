@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.test import TestCase, tag
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
@@ -231,11 +232,25 @@ class TestUserMeterDetailDelete(MeterTestMixin, TestCase):
     def test_user_meter_detail_delete_as_user_success(self):
         # given
         self.client.force_authenticate(self.user)
+        as_participant = self.create_group_participation(self.meter, self.create_group_meter())
         # when
         response = self.client.delete(self.MeterUrls.user_meter_url(self.user.pk, self.meter.pk))
         # then
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
         self.assertEqual(0, self.user.meters.count())
+        with self.assertRaises(ObjectDoesNotExist):
+            # Group participant should no longer exist
+            as_participant.refresh_from_db()
+
+    @tag('validation')
+    def test_user_meter_detail_delete_as_user_fail_is_manager_of_group(self):
+        # given
+        self.client.force_authenticate(self.user)
+        group = self.create_group_meter(self.user, self.meter)
+        # when
+        response = self.client.delete(self.MeterUrls.user_meter_url(self.user.pk, self.meter.pk))
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
 
     @tag('permission')
     def test_user_meter_detail_delete_as_other_user_fail_forbidden(self):
