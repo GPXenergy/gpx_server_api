@@ -14,8 +14,11 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
     def setUpTestData(cls):
         cls.user = cls.create_user()
         cls.meter = cls.create_smart_meter(cls.user, name='Home')
-        # create 60 measurements for past hour
+        # create 60 measurements for past 5 hours
         cls.start = timezone.now() - timezone.timedelta(minutes=60 * 5)
+        if cls.start.minute < 6:
+            # To fix time collection inconsistency in testing
+            cls.start += timezone.timedelta(minutes=6)
         cls.measurements = [
             cls.create_power_measurement(cls.meter, timestamp=cls.start + timezone.timedelta(minutes=i * 5))
             for i in range(60)
