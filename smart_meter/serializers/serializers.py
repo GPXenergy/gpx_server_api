@@ -363,6 +363,34 @@ class GroupParticipationDetailSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class ManageGroupParticipantSerializer(serializers.ModelSerializer):
+    """
+    Serializer for list/retrieve/update group participation as group manager
+    Has extra write only field 'active', if set to true, the participant will leave the group (set to inactive)
+    """
+
+    class Meta:
+        model = GroupParticipant
+        fields = (
+            'pk', 'joined_on', 'left_on', 'active', 'total_import', 'total_export', 'total_gas', 'display_name', 'type',
+        )
+        read_only_fields = (
+            'pk', 'joined_on', 'left_on', 'total_import', 'total_export', 'total_gas', 'display_name', 'type',
+        )
+
+    active = serializers.BooleanField(write_only=True, default=True)
+
+    def update(self, instance: GroupParticipant, validated_data):
+        if not instance.active:
+            raise serializers.ValidationError('Groepparticipatie is niet meer actief')
+        active = validated_data.pop('active', None)
+        if active is False:
+            if instance.group.manager_id == instance.meter.user_id:
+                raise serializers.ValidationError('Je kan de groep niet verlaten als je nog manager bent!')
+            instance.leave()
+        return super().update(instance, validated_data)
+
+
 class NewMeasurementSerializer(serializers.ModelSerializer):
     """
     Meter serializer that accepts a new measurement from the GPX-Connector. Upon saving, the serializer will

@@ -30,6 +30,32 @@ class SmartMeter(models.Model):
         ('producer_other', 'Producent wind'),
     )
 
+    RESIDENCE_TYPE_OPTIONS = (
+        ('undefined', 'Onbekend'),
+        ('apartment', 'Appartement'),
+        ('corner_house', 'Hoekwoning'),
+        ('terraced_house', 'Tussenwoning'),
+        ('two_one_roof', 'Twee onder één kap'),
+        ('detached_house', 'Vrijstaande woning'),
+        ('ground_floor_apartment', 'Benedenwoning'),
+        ('upstairs_apartment', 'Bovenwoning'),
+    )
+
+    ENERGY_LABEL_OPTIONS = (
+        ('undefined', 'Onbekend'),
+        ('apppp', 'A++++'),
+        ('appp', 'A+++'),
+        ('app', 'A++'),
+        ('ap', 'A+'),
+        ('a', 'A'),
+        ('b', 'B'),
+        ('c', 'C'),
+        ('d', 'D'),
+        ('e', 'E'),
+        ('f', 'F'),
+        ('g', 'G'),
+    )
+
     # Related to user
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='meters')
     # Customizable name for this meter, for identification to the user
@@ -42,6 +68,12 @@ class SmartMeter(models.Model):
     gpx_version = models.CharField(max_length=20, default='undefined')  # 'x.y.z'
     # Timestamp of last change to this model due to measurements
     last_update = models.DateTimeField(auto_now_add=True)
+
+    # Residence info
+    resident_count = models.IntegerField(default=0)
+    residence_type = models.CharField(choices=RESIDENCE_TYPE_OPTIONS, max_length=30, default='undefined')
+    residence_energy_label = models.CharField(choices=ENERGY_LABEL_OPTIONS, max_length=10, default='undefined')
+    solar_panel_count = models.IntegerField(default=0)
 
     # Latest power data (required part)
     sn_power = models.CharField(max_length=40)
@@ -325,7 +357,7 @@ class GroupMeter(models.Model):
         Get all active participants
         :return: 
         """
-        return self.participants.active()
+        return self.participants.active().select_related('meter')
 
     @property
     def recent_participants(self):

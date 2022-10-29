@@ -550,6 +550,7 @@ class TestGroupMeterDisplayGet(MeterTestMixin, TestCase):
         self.assertEqual(self.meter_1.group_participation.actual_power, participant.get('actual_power'))
         self.assertEqual(self.meter_1.group_participation.actual_gas, participant.get('actual_gas'))
         self.assertEqual(self.meter_1.group_participation.actual_solar, participant.get('actual_solar'))
+        self.assertEqual(self.meter_1.residence_type, participant.get('residence').get('residence_type'))
 
     @tag('permission')
     def test_group_meter_display_get_as_user_participant_success(self):

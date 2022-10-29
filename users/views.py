@@ -1,4 +1,6 @@
 from django.contrib.auth import login
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.generic.base import View
 from knox.views import LoginView as KnoxLoginView
@@ -6,11 +8,13 @@ from rest_condition import Not
 from rest_framework import permissions
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 from rest_framework.exceptions import ValidationError
-from rest_framework.generics import CreateAPIView, RetrieveAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, RetrieveUpdateDestroyAPIView, RetrieveUpdateAPIView, \
+    UpdateAPIView
 
-from users.models import User
+from users.models import User, ResetPasswordAction
 from users.permissions import RequestUserIsRelatedToUser
-from users.serializers import UserListSerializer, UserDetailSerializer
+from users.serializers import UserListSerializer, UserDetailSerializer, ResetPasswordRequestSerializer, \
+    ResetPasswordSerializer, VerifyEmailSerializer
 
 
 class SubUserView(View):
@@ -83,3 +87,49 @@ class UserDetailView(RetrieveUpdateDestroyAPIView):
                 'over of verwijder de groep en probeer het daarna nog eens.' % (instance.username, group.name)
             )
         super().perform_destroy(instance)
+
+
+class ResetPasswordRequestView(CreateAPIView):
+    serializer_class = ResetPasswordRequestSerializer
+
+    def perform_create(self, serializer):
+        reset_password: ResetPasswordAction = serializer.save()
+
+        context = {
+            'username': reset_password.user.username,
+            'uuid': reset_password.uuid,
+        }
+
+        text_content = render_to_string('emails/password_reset.txt', context, request=self.request)
+        html_content = render_to_string('emails/password_reset.html', context, request=self.request)
+
+        print(text_content, html_content)
+        send_mail(
+            subject='Nieuw wachtwoord instellen',
+            message=text_content,
+            html_message=html_content,
+            from_email='GPX Dashboard <dashboard@gpx.nl>',
+            recipient_list=[reset_password.user.email],
+        )
+
+
+class ResetPasswordView(RetrieveUpdateAPIView):
+    serializer_class = ResetPasswordSerializer
+    lookup_field = 'uuid'
+
+    def get_queryset(self):
+        return ResetPasswordAction.objects.filter(expire__gt=timezone.now())
+
+
+class VerifyEmailView(RetrieveUpdateAPIView):
+    serializer_class = VerifyEmailSerializer
+
+    def get_object(self):
+        instance = super().get_object()
+
+        user = instance.user
+        user.verified_email = instance.email
+        user.save()
+        return instance
+
+

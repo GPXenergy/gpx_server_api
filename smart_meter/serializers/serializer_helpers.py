@@ -60,6 +60,13 @@ class SimpleMeterSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class MeterResidenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SmartMeter
+        fields = ('resident_count', 'residence_type', 'residence_energy_label', 'solar_panel_count',)
+        read_only_fields = fields
+
+
 class SimpleGroupMeterSerializer(serializers.ModelSerializer):
     class Meta:
         model = GroupMeter
@@ -117,10 +124,12 @@ class RealTimeParticipantSerializer(serializers.ModelSerializer):
             'actual_power',
             'actual_gas',
             'actual_solar',
+            'residence',
         )
         read_only_fields = fields
 
     last_activity = serializers.DateTimeField(read_only=True, source='meter.last_update')
+    residence = MeterResidenceSerializer(source='meter')
 
 
 class _NewMeasurementSerializer(serializers.Serializer):

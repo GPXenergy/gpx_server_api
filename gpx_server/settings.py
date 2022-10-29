@@ -68,7 +68,7 @@ ROOT_URLCONF = 'gpx_server.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,6 +82,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'gpx_server.wsgi.application'
+
+
+# Email settings
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True
+EMAIL_HOST = os.environ.get('GPX_EMAIL_HOST', '')
+EMAIL_HOST_USER = os.environ.get('GPX_EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('GPX_EMAIL_HOST_PASSWORD', '')
+EMAIL_PORT = 587
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -153,6 +163,7 @@ REST_FRAMEWORK = {
 }
 if DEBUG:
     REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] += ('rest_framework.authentication.SessionAuthentication',)
+    REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += ('rest_framework.renderers.BrowsableAPIRenderer',)
 
 # endregion
 

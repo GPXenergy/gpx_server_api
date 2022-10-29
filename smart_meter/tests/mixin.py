@@ -137,6 +137,10 @@ class MeterTestMixin(UserTestMixin):
         meter_serial += 1
         return {
             'gpx_version': '1.2.3',
+            'resident_count': random.randint(0, 5),
+            'residence_type': random.choice(SmartMeter.RESIDENCE_TYPE_OPTIONS)[0],
+            'residence_energy_label': random.choice(SmartMeter.ENERGY_LABEL_OPTIONS)[0],
+            'solar_panel_count': random.randint(0, 5),
             'sn_power': '%d' % (meter_serial + 123123),
             'power_timestamp': timezone.now(),
             'actual_power_import': decimal.Decimal(random.randint(0, 1000) / 1000),

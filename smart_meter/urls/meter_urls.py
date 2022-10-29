@@ -16,8 +16,8 @@ urlpatterns = [
     path('groups/invite/<uuid:invitation_key>/', GroupMeterInviteInfoView.as_view(), name='group_meter_invite_info'),
 
     # For participant management TODO: activate these endpoints for history view
-    # path('groups/<int:group_pk>/participants/', GroupParticipantListView.as_view(), name='group_participant_list'),
-    # path('groups/<int:group_pk>/participants/<int:pk>/', GroupParticipantDetailView.as_view(), name='group_participant_detail'),
+    path('groups/<int:group_pk>/participants/', GroupParticipantListView.as_view(), name='group_participant_list'),
+    path('groups/<int:group_pk>/participants/<int:pk>/', GroupParticipantDetailView.as_view(), name='group_participant_detail'),
 
     # urls used by nodejs
     path('groups/live-data/', GroupLiveDataView.as_view(), name='group_live_data'),

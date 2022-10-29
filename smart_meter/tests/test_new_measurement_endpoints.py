@@ -311,11 +311,11 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.user.api_key)
         payload = self.default_payload
         # when
-        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json', HTTP_USER_AGENT='GPXCONN/1.2.3')
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json', HTTP_USER_AGENT='GPXCONN/1.2.5')
         # then
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
         meter = SmartMeter.objects.get(sn_power=self.default_payload['power']['sn'])
-        self.assertEqual(meter.gpx_version, '1.2.3')
+        self.assertEqual(meter.gpx_version, '1.2.5')
 
     @tag('permission')
     def test_new_measurement_view_post_as_visitor_fail_unauthorized(self):

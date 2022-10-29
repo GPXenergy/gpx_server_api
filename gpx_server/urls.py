@@ -24,7 +24,7 @@ from gpx_server.stats_view import StatisticsView
 
 
 def _root(request):
-    return HttpResponse("<html><body>GPX API v1.0</body></html>")
+    return HttpResponse("<html><body>GPX API v1.1.0</body></html>")
 
 
 urlpatterns = [

@@ -18,7 +18,7 @@ from smart_meter.serializers.serializers import MeterDetailSerializer, MeterList
     GroupMeterListSerializer, GroupParticipationDetailSerializer, GroupParticipationListSerializer, \
     GasMeasurementSerializer, SolarMeasurementSerializer, PowerMeasurementSerializer, NewMeasurementSerializer, \
     GroupMeterViewSerializer, GroupMeterInviteInfoSerializer, GroupLiveDataSerializer, NewMeasurementTestSerializer, \
-    MeterMeasurementsDetailSerializer
+    MeterMeasurementsDetailSerializer, ManageGroupParticipantSerializer
 from users.permissions import RequestUserIsRelatedToUser
 from users.views import SubUserView
 
@@ -191,20 +191,19 @@ class GroupMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
         return GroupMeter.objects.by_user(self.user_id)
 
 
-class GroupParticipantListView(SubGroupMeterView, ListCreateAPIView):
+class GroupParticipantListView(SubGroupMeterView, ListAPIView):
     """
     List of group participants for a meter
     Available request methods: GET, POST
     `GET`:
-    `POST`:
     """
-    GET_permissions = [RequestUserIsPartOfGroupMeter]
+    GET_permissions = [RequestUserIsPartOfGroupMeter, RequestUserIsManagerOfGroupMeter]
     filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = ['display_name']
     ordering_fields = ['left_on']
     ordering = ['pk']
     filter_class = None  # TODO
-    serializer_class = GroupMeterListSerializer
+    serializer_class = ManageGroupParticipantSerializer
 
     def get_queryset(self):
         return GroupParticipant.objects.filter(group_id=self.group_id)
@@ -218,10 +217,10 @@ class GroupParticipantDetailView(SubGroupMeterView, RetrieveUpdateDestroyAPIView
     `PUT`:
     `DELETE`:
     """
-    GET_permissions = [RequestUserIsPartOfGroupMeter]
-    PUT_permissions = [RequestUserIsManagerOfGroupMeter]
+    GET_permissions = [RequestUserIsPartOfGroupMeter, RequestUserIsManagerOfGroupMeter]
+    PUT_permissions = GET_permissions
     DELETE_permissions = PUT_permissions
-    serializer_class = GroupMeterDetailSerializer
+    serializer_class = ManageGroupParticipantSerializer
 
     def get_queryset(self):
         return GroupParticipant.objects.filter(group_id=self.group_id)

@@ -45,7 +45,7 @@ class RequestUserIsPartOfGroupMeter(BasePermission):
 
     def has_permission(self, request, view):
         """
-        Return `True` if the request is is part of the group meter, `False`
+        Return `True` if the request user is part of the group meter, `False`
         otherwise.
         """
         if not request.user or not request.user.is_authenticated:
@@ -66,7 +66,7 @@ class RequestUserIsManagerOfGroupMeter(BasePermission):
 
     def has_permission(self, request, view):
         """
-        Return `True` if the request is is part of the group meter, `False`
+        Return `True` if the request user is manager of the group meter, `False`
         otherwise.
         """
         if not request.user or not request.user.is_authenticated:
@@ -74,9 +74,7 @@ class RequestUserIsManagerOfGroupMeter(BasePermission):
         assert hasattr(view, 'group_id'), (
                 '%s requires property group_id' % (view.__class__.__name__,))
         group_id = getattr(view, 'group_id')
-        return GroupParticipant.objects.filter(
-            meter__user_id=request.user.pk, left_on__isnull=True, group_id=group_id
-        ).exists()
+        return GroupMeter.objects.filter(manager_id=request.user.pk, group_id=group_id).exists()
 
 
 class RequestFromNodejs(BasePermission):

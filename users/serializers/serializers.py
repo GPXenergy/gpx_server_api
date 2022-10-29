@@ -1,8 +1,59 @@
 from django.contrib.auth import password_validation
+from django.utils import timezone
 from rest_framework import serializers
 
 from smart_meter.models import SmartMeter
-from users.models import User
+from users.models import User, ResetPasswordAction
+
+
+class ResetPasswordRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResetPasswordAction
+        fields = ('username',)
+
+    _user: User = None
+    username = serializers.CharField(max_length=80, write_only=True)
+
+    def validate_username(self, username):
+        user = User.objects.filter(username=username).first()
+        if not user:
+            raise serializers.ValidationError('Geen gebruiker gevonden met deze gebruikersnaam')
+        if not user.email:
+            raise serializers.ValidationError('Dit account heeft geen email gekoppeld, neem direct contact op met GPX')
+        self._user = user
+        return username
+
+    def create(self, validated_data):
+        expire = timezone.now() + timezone.timedelta(days=2)
+        return ResetPasswordAction.objects.create(user=self._user, expire=expire)
+
+
+class ResetPasswordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResetPasswordAction
+        fields = ('password',)
+
+    password = serializers.CharField(max_length=128, write_only=True)
+
+    def validate_password(self, password):
+        password_validation.validate_password(password)
+        return password
+
+    def update(self, instance, validated_data):
+        if instance.expired:
+            instance.delete()
+            raise serializers.ValidationError('Deze link is verlopen')
+        password = validated_data.pop('password')
+        user = instance.user
+        user.set_password(password)
+        user.save()
+        instance.delete()
+        return instance
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    class Meta:
+        fields = ()
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -44,6 +95,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'pk',
             'username',
             'email',
+            'verified_email',
             'first_name',
             'last_name',
             'password',
@@ -53,7 +105,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'api_key',
             'new_api_key',
         )
-        read_only_fields = ('pk', 'username', 'api_key')
+        read_only_fields = ('pk', 'username', 'api_key', 'verified_email')
         extra_kwargs = {
             'password': {'write_only': True},
             'new_api_key': {'write_only': True},
@@ -92,5 +144,10 @@ class UserDetailSerializer(serializers.ModelSerializer):
         if new_key:
             # Set new api key
             instance.new_api_key()
+
+        # TODO: implement verified emailing at some point
+        # new_email = validated_data.pop('email', instance.email)
+        # if instance.email != new_email and new_email != instance.verified_email:
+        #     validated_data['']
 
         return super().update(instance, validated_data)
