@@ -70,6 +70,10 @@ class MeterListSerializer(serializers.ModelSerializer):
             'pk',
             'name',
             'type',
+            'resident_count',
+            'residence_type',
+            'residence_energy_label',
+            'solar_panel_count',
             'gpx_version',
             'visibility_type',
             'last_update',
@@ -105,7 +109,10 @@ class MeterDetailSerializer(MeterListSerializer):
             'solar_timestamp',
             'actual_solar',
         )
-        read_only_fields = [field for field in fields if field not in ['name', 'visibility_type', 'type']]
+        read_only_fields = [field for field in fields if field not in [
+            'name', 'visibility_type', 'type', 'resident_count', 'residence_type', 'residence_energy_label',
+            'solar_panel_count',
+        ]]
 
 
 class MeterMeasurementsDetailSerializer(MeterDetailSerializer):
