@@ -133,7 +133,7 @@ class RealTimeParticipantSerializer(serializers.ModelSerializer):
 
 
 class _NewMeasurementSerializer(serializers.Serializer):
-    timestamp = serializers.CharField(max_length=30)
+    timestamp = serializers.CharField(max_length=40)
 
     def validate_timestamp(self, value):
         timestamp = dateparse.parse_datetime(value)
