@@ -74,7 +74,7 @@ class RequestUserIsManagerOfGroupMeter(BasePermission):
         assert hasattr(view, 'group_id'), (
                 '%s requires property group_id' % (view.__class__.__name__,))
         group_id = getattr(view, 'group_id')
-        return GroupMeter.objects.filter(manager_id=request.user.pk, group_id=group_id).exists()
+        return GroupMeter.objects.filter(manager_id=request.user.pk, id=group_id).exists()
 
 
 class RequestFromNodejs(BasePermission):
