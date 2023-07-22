@@ -276,6 +276,122 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
 
     @tag('variation')
+    def test_new_measurement_view_post_real_data_fail_invalid_timestamp(self):
+        # given
+        self.client.force_authenticate(self.user)
+        payload = {
+            "power": {
+                "sn": "4530303331303033323035383733373136",
+                "timestamp": "201015200857S",
+                "import_1": "007409.325",
+                "import_2": "007397.355",
+                "export_1": "000000.000",
+                "export_2": "000000.000",
+                "tariff": 2,
+                "actual_import": "00.462",
+                "actual_export": "00.000"
+            },
+            "gas": {
+                "sn": "4730303139333430323834343236393136",
+                "timestamp": "2010152000003",
+                "gas": "06146.079"
+            },
+            "solar": None
+        }
+        # when
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data['gas']['timestamp'])
+
+    @tag('variation')
+    def test_new_measurement_view_post_real_data_fail_invalid_gas_value(self):
+        # given
+        self.client.force_authenticate(self.user)
+        payload = {
+            "power": {
+                "sn": "4530303331303033323035383733373136",
+                "timestamp": "201015200857S",
+                "import_1": "007409.325",
+                "import_2": "007397.355",
+                "export_1": "000000.000",
+                "export_2": "000000.000",
+                "tariff": 2,
+                "actual_import": "00.462",
+                "actual_export": "00.000"
+            },
+            "gas": {
+                "sn": "4730303139333430323834343236393136",
+                "timestamp": "201015200000S",
+                "gas": "06146.079f"
+            },
+            "solar": None
+        }
+        # when
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data['gas']['gas'])
+
+    @tag('variation')
+    def test_new_measurement_view_post_real_data_fail_invalid_gas_sn(self):
+        # given
+        self.client.force_authenticate(self.user)
+        payload = {
+            "power": {
+                "sn": "4530303331303033323035383733373136",
+                "timestamp": "201015200857S",
+                "import_1": "007409.325",
+                "import_2": "007397.355",
+                "export_1": "000000.000",
+                "export_2": "000000.000",
+                "tariff": 2,
+                "actual_import": "00.462",
+                "actual_export": "00.000"
+            },
+            "gas": {
+                "sn": "",
+                "timestamp": "201015200000S",
+                "gas": "06146.079"
+            },
+            "solar": None
+        }
+        # when
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data['gas']['sn'])
+
+    @tag('variation')
+    def test_new_measurement_view_post_real_data_fail_invalid_power_import(self):
+        # given
+        self.client.force_authenticate(self.user)
+        payload = {
+            "power": {
+                "sn": "4530303331303033323035383733373136",
+                "timestamp": "201015200857S",
+                "import_1": "007409.32v5",
+                "import_2": "007397.355",
+                "export_1": "000000.000",
+                "export_2": "000000.000",
+                "tariff": 2,
+                "actual_import": "00.462",
+                "actual_export": "00.000"
+            },
+            "gas": {
+                "sn": "4730303139333430323834343236393136",
+                "timestamp": "201015200000S",
+                "gas": "06146.079"
+            },
+            "solar": None
+        }
+        # when
+        response = self.client.post(self.MeterUrls.new_measurement_url(), payload, format='json')
+        # then
+        self.assertEqual(status.HTTP_400_BAD_REQUEST, response.status_code)
+        self.assertIsNotNone(response.data['power']['import_1'])
+
+    @tag('variation')
     def test_new_measurement_test_view_post_data_success(self):
         # given
         self.client.force_authenticate(self.user)

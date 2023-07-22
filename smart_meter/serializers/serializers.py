@@ -416,6 +416,13 @@ class NewMeasurementSerializer(serializers.ModelSerializer):
     gas = NewGasMeasurementSerializer(write_only=True, allow_null=True, required=False)
     solar = NewSolarMeasurementSerializer(write_only=True, allow_null=True, required=False)
 
+    def run_validation(self, *args, **kwargs):
+        try:
+            return super().run_validation(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            raise e
+
     def create(self, validated_data):
         return SmartMeter.objects.new_measurement(
             **validated_data,
