@@ -32,14 +32,14 @@ class MeterDataExporter:
         """
         # Generate filename based on meter name and current UTC timestamp
         timestamp = datetime.now(dt_timezone.utc).strftime('%Y%m%d_%H%M%S')
-        safe_meter_name = "".join(c if c.isalnum() else "_" for c in str(self.meter.name))
-        filename = f"meter_{safe_meter_name}_{timestamp}.zip"
+        filename = f"export_{timestamp}.zip"
 
         # Construct full file path in media directory
-        file_path = os.path.join(settings.MEDIA_ROOT, 'export', self.meter.name, filename)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'export', self.meter.pk, filename)
+        file_dir = os.path.dirname(file_path)
 
         # Ensure directory exists
-        os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+        os.makedirs(file_dir, exist_ok=True)
 
         # Create temporary CSV files
         with tempfile.TemporaryDirectory() as temp_dir:
