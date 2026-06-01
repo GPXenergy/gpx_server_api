@@ -1,16 +1,18 @@
 import os
-import time
+import csv
+import tempfile
+import zipfile
+from datetime import datetime, timezone as dt_timezone
 from typing import Optional, Callable
 
 from django.conf import settings
-from openpyxl import Workbook
 
 from smart_meter.models import SmartMeter, PowerMeasurement, GasMeasurement, SolarMeasurement
 
 BATCH_SIZE = 1000
 
 class MeterDataExporter:
-    """Service to export meter data to Excel format"""
+    """Service to export meter data to CSV files in a ZIP archive"""
 
     def __init__(self, meter: SmartMeter, progress_callback: Optional[Callable[[str], None]] = None):
         """
@@ -22,36 +24,47 @@ class MeterDataExporter:
         self.meter = meter
         self.progress_callback = progress_callback
 
-    def export_to_excel(self, filename: str) -> str:
+    def export_to_zip(self) -> str:
         """
-        Export all measurements for the meter to an Excel file in the media directory
+        Export all measurements for the meter to CSV files in a ZIP archive
 
-        :param filename: Output xlsx filename (without path)
         :return: Full path to the saved file
         """
+        # Generate filename based on meter name and current UTC timestamp
+        timestamp = datetime.now(dt_timezone.utc).strftime('%Y%m%d_%H%M%S')
+        safe_meter_name = "".join(c if c.isalnum() else "_" for c in str(self.meter.name))
+        filename = f"meter_{safe_meter_name}_{timestamp}.zip"
+
         # Construct full file path in media directory
-        file_path = os.path.join(settings.MEDIA_ROOT, filename)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'export', self.meter.name, filename)
 
-        # Ensure directory exists (extract directory from file_path)
-        directory = os.path.dirname(file_path)
-        if directory:
-            os.makedirs(directory, exist_ok=True)
+        # Ensure directory exists
+        os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
 
-        wb = Workbook(write_only=True)
+        # Create temporary CSV files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            power_csv = os.path.join(temp_dir, "power.csv")
+            gas_csv = os.path.join(temp_dir, "gas.csv")
+            solar_csv = os.path.join(temp_dir, "solar.csv")
 
-        self._export_power(wb)
-        self._export_gas(wb)
-        self._export_solar(wb)
+            self._export_power(power_csv)
+            self._export_gas(gas_csv)
+            self._export_solar(solar_csv)
 
-        self._log("Saving workbook...")
-        wb.save(file_path)
+            # Create ZIP archive
+            self._log("Creating ZIP archive...")
+            with zipfile.ZipFile(file_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                if os.path.exists(power_csv) and os.path.getsize(power_csv) > 0:
+                    zipf.write(power_csv, "power.csv")
+                if os.path.exists(gas_csv) and os.path.getsize(gas_csv) > 0:
+                    zipf.write(gas_csv, "gas.csv")
+                if os.path.exists(solar_csv) and os.path.getsize(solar_csv) > 0:
+                    zipf.write(solar_csv, "solar.csv")
 
         return file_path
 
-    def _export_power(self, wb: Workbook) -> None:
-        """Export power measurements to a worksheet"""
-        ws = wb.create_sheet("Power")
-
+    def _export_power(self, file_path: str) -> None:
+        """Export power measurements to a CSV file"""
         headers = [
             "timestamp",
             "actual_import",
@@ -62,8 +75,6 @@ class MeterDataExporter:
             "total_export_2",
         ]
 
-        ws.append(headers)
-
         qs = (
             PowerMeasurement.objects
             .filter(meter=self.meter)
@@ -71,23 +82,19 @@ class MeterDataExporter:
         )
 
         self._write_queryset(
-            ws=ws,
+            file_path=file_path,
             queryset=qs,
             fields=headers,
             title="Power",
         )
 
-    def _export_gas(self, wb: Workbook) -> None:
-        """Export gas measurements to a worksheet"""
-        ws = wb.create_sheet("Gas")
-
+    def _export_gas(self, file_path: str) -> None:
+        """Export gas measurements to a CSV file"""
         headers = [
             "timestamp",
             "actual_gas",
             "total_gas",
         ]
-
-        ws.append(headers)
 
         qs = (
             GasMeasurement.objects
@@ -96,23 +103,19 @@ class MeterDataExporter:
         )
 
         self._write_queryset(
-            ws=ws,
+            file_path=file_path,
             queryset=qs,
             fields=headers,
             title="Gas",
         )
 
-    def _export_solar(self, wb: Workbook) -> None:
-        """Export solar measurements to a worksheet"""
-        ws = wb.create_sheet("Solar")
-
+    def _export_solar(self, file_path: str) -> None:
+        """Export solar measurements to a CSV file"""
         headers = [
             "timestamp",
             "actual_solar",
             "total_solar",
         ]
-
-        ws.append(headers)
 
         qs = (
             SolarMeasurement.objects
@@ -121,49 +124,50 @@ class MeterDataExporter:
         )
 
         self._write_queryset(
-            ws=ws,
+            file_path=file_path,
             queryset=qs,
             fields=headers,
             title="Solar",
         )
 
-    def _write_queryset(self, ws, queryset, fields, title):
-        """Write queryset data to worksheet in batches"""
-        total = queryset.count()
+    def _write_queryset(self, file_path: str, queryset, fields, title):
+        """Write queryset data to CSV file in batches"""
+        self._log(f"{title}: starting export")
 
-        self._log(f"{title}: exporting {total:,} records")
+        with open(file_path, 'w', newline='', encoding='utf-8') as csvfile:
+            writer = csv.writer(csvfile)
 
-        if total == 0:
-            return
+            # Write headers
+            writer.writerow(fields)
 
-        processed = 0
-        last_pk = 0
+            processed = 0
+            last_pk = 0
 
-        while True:
-            batch = list(
-                queryset
-                .filter(pk__gt=last_pk)
-                .values_list(*fields, "pk")[:BATCH_SIZE]
-            )
+            while True:
+                batch = list(
+                    queryset
+                    .filter(pk__gt=last_pk)
+                    .values_list(*fields, "pk")[:BATCH_SIZE]
+                )
 
-            if not batch:
-                break
+                if not batch:
+                    break
 
-            for row in batch:
-                *values, pk = row
-                ws.append(values)
-                last_pk = pk
+                for row in batch:
+                    *values, pk = row
 
-            processed += len(batch)
+                    # Convert timezone-aware datetime to naive UTC for the first field (timestamp)
+                    if values and isinstance(values[0], datetime):
+                        if values[0].tzinfo is not None:
+                            values[0] = values[0].astimezone(dt_timezone.utc).replace(tzinfo=None)
 
-            pct = (processed / total) * 100
+                    writer.writerow(values)
+                    last_pk = pk
 
-            self._log(
-                f"{title}: {processed:,}/{total:,} "
-                f"({pct:.1f}%)"
-            )
+                processed += len(batch)
+                self._log(f"{title}: {processed:,} records exported")
 
-            time.sleep(1)
+        self._log(f"{title}: export complete ({processed:,} total records)")
 
     def _log(self, message: str) -> None:
         """Log a progress message if callback is provided"""

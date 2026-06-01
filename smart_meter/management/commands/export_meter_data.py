@@ -5,7 +5,7 @@ from smart_meter.services.export_data import MeterDataExporter
 
 
 class Command(BaseCommand):
-    help = "Export all measurements for a meter to Excel"
+    help = "Export all measurements for a meter to a ZIP archive containing CSV files"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -14,20 +14,15 @@ class Command(BaseCommand):
             help="Meter ID",
         )
 
-        parser.add_argument(
-            "filename",
-            type=str,
-            help="Output xlsx filename",
-        )
-
     def handle(self, *args, **options):
         meter_id = options["meter_id"]
-        filename = options["filename"]
 
         try:
             meter = SmartMeter.objects.get(pk=meter_id)
         except SmartMeter.DoesNotExist:
             raise CommandError(f"Meter {meter_id} does not exist")
+
+        self.stdout.write(f"Exporting data for meter: {meter.name} (ID: {meter_id})")
 
         # Create exporter with progress callback
         exporter = MeterDataExporter(
@@ -35,8 +30,8 @@ class Command(BaseCommand):
             progress_callback=self.stdout.write
         )
 
-        # Export to Excel
-        file_path = exporter.export_to_excel(filename)
+        # Export to ZIP
+        file_path = exporter.export_to_zip()
 
         self.stdout.write(
             self.style.SUCCESS(
