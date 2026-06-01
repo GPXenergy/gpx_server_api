@@ -1,6 +1,6 @@
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
-import pytz
 from django.test import TestCase, tag
 from django.utils import timezone
 from rest_framework import status
@@ -159,13 +159,13 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         new_meter = SmartMeter.objects.get(sn_power=payload['power']['sn'])
         self.assertEqual(payload['power']['sn'], new_meter.sn_power)
         self.assertEqual(payload['power']['timestamp'], new_meter.power_timestamp)
-        self.assertEqual(payload['power']['actual_import'], self.meter1.actual_power_import)
-        self.assertEqual(payload['power']['actual_export'], self.meter1.actual_power_export)
-        self.assertEqual(payload['power']['tariff'], self.meter1.tariff)
-        self.assertEqual(payload['power']['import_1'], self.meter1.total_power_import_1)
-        self.assertEqual(payload['power']['import_2'], self.meter1.total_power_import_2)
-        self.assertEqual(payload['power']['export_1'], self.meter1.total_power_export_1)
-        self.assertEqual(payload['power']['export_2'], self.meter1.total_power_export_2)
+        self.assertEqual(payload['power']['actual_import'], new_meter.actual_power_import)
+        self.assertEqual(payload['power']['actual_export'], new_meter.actual_power_export)
+        self.assertEqual(payload['power']['tariff'], new_meter.tariff)
+        self.assertEqual(payload['power']['import_1'], new_meter.total_power_import_1)
+        self.assertEqual(payload['power']['import_2'], new_meter.total_power_import_2)
+        self.assertEqual(payload['power']['export_1'], new_meter.total_power_export_1)
+        self.assertEqual(payload['power']['export_2'], new_meter.total_power_export_2)
         self.assertEqual(payload['gas']['sn'], new_meter.sn_gas)
         self.assertEqual(payload['gas']['timestamp'], new_meter.gas_timestamp)
         self.assertEqual(payload['gas']['gas'], new_meter.total_gas)
@@ -199,7 +199,7 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         # given
         self.client.force_authenticate(self.user)
         payload = self.default_payload
-        timestamp = timezone.now().astimezone(pytz.timezone('Europe/Amsterdam'))
+        timestamp = timezone.now().astimezone(ZoneInfo('Europe/Amsterdam'))
         payload['power']['timestamp'] = timestamp.strftime('%y%m%d%H%M%S') + 'S'
         payload['gas']['timestamp'] = timestamp.strftime('%y%m%d%H%M%S') + 'S'
         # when
@@ -207,7 +207,7 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         # then
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
         self.meter1.refresh_from_db()
-        for_comparison = timestamp.astimezone(pytz.utc)
+        for_comparison = timestamp.astimezone(ZoneInfo('UTC'))
         self.assertEqual(for_comparison.year, self.meter1.power_timestamp.year)
         self.assertEqual(for_comparison.month, self.meter1.power_timestamp.month)
         self.assertEqual(for_comparison.day, self.meter1.power_timestamp.day)
@@ -226,7 +226,7 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         # given
         self.client.force_authenticate(self.user)
         payload = self.default_payload
-        gas_timestamp = timezone.now().astimezone(pytz.timezone('Europe/Amsterdam'))
+        gas_timestamp = timezone.now().astimezone(ZoneInfo('Europe/Amsterdam'))
         payload['power']['timestamp'] = 'now'  # will use timezone.now in endpoint
         payload['gas']['timestamp'] = gas_timestamp.strftime('%y%m%d%H%M%S')
         # when
@@ -234,7 +234,7 @@ class TestNewMeasurementPost(MeterTestMixin, TestCase):
         # then
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
         self.meter1.refresh_from_db()
-        for_comparison = gas_timestamp.astimezone(pytz.utc)
+        for_comparison = gas_timestamp.astimezone(ZoneInfo('UTC'))
         self.assertEqual(for_comparison.year, self.meter1.power_timestamp.year)
         self.assertEqual(for_comparison.month, self.meter1.power_timestamp.month)
         self.assertEqual(for_comparison.day, self.meter1.power_timestamp.day)

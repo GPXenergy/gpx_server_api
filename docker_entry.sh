@@ -1,4 +1,8 @@
 #!/bin/sh
 
 python ./manage.py migrate
-gunicorn gpx_server.wsgi --capture-output -b 127.0.0.1:8000
+exec gunicorn gpx_server.wsgi \
+  --bind 0.0.0.0:8000 \
+  --workers 3 \
+  --timeout 40 \
+  --capture-output

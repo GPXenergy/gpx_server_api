@@ -54,7 +54,7 @@ class UserMeterListView(SubUserView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['pk', 'name', 'power_timestamp']
     ordering = ['name']
-    filter_class = None  # TODO
+    filterset_class = None  # TODO
     serializer_class = MeterListSerializer
 
     def get_queryset(self):
@@ -73,7 +73,7 @@ class UserMeterDetailView(SubUserView, RetrieveUpdateDestroyAPIView):
     PUT_permissions = GET_permissions
     DELETE_permissions = GET_permissions
     filter_backends = [DjangoFilterBackend]
-    filter_class = MeterMeasurementFilter
+    filterset_class = MeterMeasurementFilter
 
     def get_serializer_class(self):
         if self.request.query_params.get('measurements'):
@@ -104,7 +104,7 @@ class PowerMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = MeasurementFilter
+    filterset_class = MeasurementFilter
     serializer_class = PowerMeasurementSerializer
 
     def get_queryset(self):
@@ -122,7 +122,7 @@ class GasMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = MeasurementFilter
+    filterset_class = MeasurementFilter
     serializer_class = GasMeasurementSerializer
 
     def get_queryset(self):
@@ -140,7 +140,7 @@ class SolarMeasurementListView(SubUserView, SubMeterView, ListAPIView):
     search_fields = ['name']
     ordering_fields = ['timestamp']
     ordering = ['timestamp']
-    filter_class = MeasurementFilter
+    filterset_class = MeasurementFilter
     serializer_class = SolarMeasurementSerializer
 
     def get_queryset(self):
@@ -160,7 +160,7 @@ class GroupMeterListView(SubUserView, ListCreateAPIView):
     search_fields = ['name']
     ordering_fields = ['pk', 'name']
     ordering = ['pk']
-    filter_class = None  # TODO
+    filterset_class = None  # TODO
     serializer_class = GroupMeterListSerializer
 
     def get_queryset(self):
@@ -202,7 +202,7 @@ class GroupParticipantListView(SubGroupMeterView, ListAPIView):
     search_fields = ['display_name']
     ordering_fields = ['left_on']
     ordering = ['pk']
-    filter_class = None  # TODO
+    filterset_class = None  # TODO
     serializer_class = ManageGroupParticipantSerializer
 
     def get_queryset(self):
@@ -239,7 +239,7 @@ class MeterParticipationListView(SubUserView, ListCreateAPIView):
     search_fields = ['group__name']
     ordering_fields = ['pk']
     ordering = ['pk']
-    filter_class = GroupParticipantFilter
+    filterset_class = GroupParticipantFilter
     serializer_class = GroupParticipationListSerializer
 
     def get_queryset(self):

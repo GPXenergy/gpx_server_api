@@ -145,6 +145,9 @@ TIME_ZONE = 'Europe/Amsterdam'
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 # region Third-party settings
 
 # region REST framework
@@ -170,7 +173,7 @@ if DEBUG:
 # region KNOX auth
 
 REST_KNOX = {
-    'SECURE_HASH_ALGORITHM': 'cryptography.hazmat.primitives.hashes.SHA512',
+    'SECURE_HASH_ALGORITHM': 'hashlib.sha512',
     'AUTH_TOKEN_CHARACTER_LENGTH': 64,
     'TOKEN_TTL': None,
     'USER_SERIALIZER': 'users.serializers.UserDetailSerializer',

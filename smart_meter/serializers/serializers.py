@@ -423,6 +423,10 @@ class NewMeasurementSerializer(serializers.ModelSerializer):
             print(e)
             raise e
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        return rep
+
     def create(self, validated_data):
         return SmartMeter.objects.new_measurement(
             **validated_data,

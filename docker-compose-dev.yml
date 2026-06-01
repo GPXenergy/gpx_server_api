@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: gpx_data
+      POSTGRES_USER: gpx_manager
+      POSTGRES_PASSWORD: gpx_password
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      GPX_DB_HOST: db
+      GPX_DB_NAME: gpx_data
+      GPX_DB_USER: gpx_manager
+      GPX_DB_PASSWORD: gpx_password
+      GPX_DB_PORT: 5432
+      GPX_DEBUG: "1"
+    depends_on:
+      - db
+

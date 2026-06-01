@@ -1,3 +1,4 @@
+import datetime
 from decimal import Decimal
 
 from django.test import TestCase, tag
@@ -64,7 +65,7 @@ class TestPowerMeasurementListGet(MeterTestMixin, TestCase):
         self.assertEqual(6, len(response.data))
         for i in range(6):
             # Averages equal averages of the hour
-            timestamp = dateparse.parse_datetime(response.data[i].get('timestamp')).astimezone(timezone.utc)
+            timestamp = dateparse.parse_datetime(response.data[i].get('timestamp')).astimezone(datetime.timezone.utc)
             this_hour_measurements = [
                 measurement.actual_export
                 for measurement in self.measurements

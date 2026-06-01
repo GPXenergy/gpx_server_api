@@ -1,6 +1,7 @@
-import pytz
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from django.utils import timezone, dateparse
-from django.utils.datetime_safe import datetime
 from rest_framework import serializers
 
 from smart_meter.models import SmartMeter, GroupParticipant, GroupMeter, SolarMeasurement, PowerMeasurement, \
@@ -139,8 +140,12 @@ class _NewMeasurementSerializer(serializers.Serializer):
         timestamp = dateparse.parse_datetime(value)
         if not timestamp and value[-1] in ['W', 'S']:
             # timestamp format from smart meter
+            # W = winter time (standard), S = summer time (DST)
             timestamp = datetime.strptime(value[:-1], "%y%m%d%H%M%S")
-            return timezone.make_aware(timestamp, timezone=pytz.timezone('Europe/Amsterdam'), is_dst=value[-1] == 'W')
+            tz = ZoneInfo('Europe/Amsterdam')
+            # fold=0 for DST (summer time), fold=1 for standard time (winter)
+            timestamp = timestamp.replace(tzinfo=tz, fold=0 if value[-1] == 'S' else 1)
+            return timestamp
         if not timestamp and value:
             # timestamp format from smart meter dsmr2.2 (without W or S indication)
             try:
@@ -157,7 +162,7 @@ class _NewMeasurementSerializer(serializers.Serializer):
 
         if timezone.is_aware(timestamp):
             return timestamp
-        return timezone.make_aware(timestamp, timezone=pytz.timezone('Europe/Amsterdam'))
+        return timezone.make_aware(timestamp, timezone=ZoneInfo('Europe/Amsterdam'))
 
 
 class NewPowerMeasurementSerializer(_NewMeasurementSerializer):
