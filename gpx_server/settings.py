@@ -200,6 +200,6 @@ if DEBUG:
     CORS_ORIGIN_ALLOW_ALL = True
 else:
     CORS_ORIGIN_WHITELIST = ['https://dashboard.gpx.nl', 'http://localhost:4200']
-    CSRF_TRUSTED_ORIGINS = ['.gpx.nl']
+    CSRF_TRUSTED_ORIGINS = ['https://*.gpx.nl']
 
 # endregion
